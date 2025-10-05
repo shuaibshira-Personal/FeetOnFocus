@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FeetOnFocus - Inventory Management</title>
+    <link rel="icon" type="image/jpeg" href="assets/logo/FEET_LOGO round updated.jpg">
+    <link rel="stylesheet" href="assets/styles/main.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-feet-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="assets/logo/FEET_LOGO round updated.jpg" alt="FeetOnFocus Logo" class="navbar-logo me-2">
+                FeetOnFocus
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" id="dashboardTab">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="itemsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cube"></i> Inventory
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="itemsDropdown">
+                            <li><a class="dropdown-item" href="#" id="resellingTab">
+                                <i class="fas fa-shopping-cart"></i> Reselling Items
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" id="consumablesTab">
+                                <i class="fas fa-flask"></i> Consumables
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" id="officeEquipmentTab">
+                                <i class="fas fa-desktop"></i> Office Equipment
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="allItemsTab">
+                                <i class="fas fa-th-list"></i> All Items
+                            </a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="invoicesTab">
+                            <i class="fas fa-file-invoice"></i> Invoices
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="reportsTab">
+                            <i class="fas fa-chart-bar"></i> Reports
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Burger Menu -->
+                <div class="navbar-nav">
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+                            <li><a class="dropdown-item" href="#" id="manageSuppliersBtn">
+                                <i class="fas fa-truck"></i> Manage Suppliers
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" id="manageCategoriesBtn">
+                                <i class="fas fa-tags"></i> Manage Categories
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="dataManagementBtn">
+                                <i class="fas fa-database"></i> Data Management
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" id="purchaseHistoryBtn">
+                                <i class="fas fa-receipt"></i> Purchase History
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="aboutBtn">
+                                <i class="fas fa-info-circle"></i> About FeetOnFocus
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <!-- Dashboard Tab Content -->
+        <div id="dashboardContent" class="tab-content">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>Total Items</h4>
+                                    <h2 id="totalItems">0</h2>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-cubes fa-3x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>Stock Value</h4>
+                                    <h2 id="stockValue">$0</h2>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-dollar-sign fa-3x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>Low Stock</h4>
+                                    <h2 id="lowStockItems">0</h2>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-exclamation-triangle fa-3x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white" style="cursor: pointer;" id="pendingOrdersCard">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>Pending Orders</h4>
+                                    <h2 id="pendingOrders">0</h2>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clock fa-3x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line"></i> Recent Activity</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentActivity">
+                                <p class="text-muted">No recent activity</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reselling Items Tab Content -->
+        <div id="resellingContent" class="tab-content d-none">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <h3><i class="fas fa-shopping-cart"></i> Reselling Items</h3>
+                        <div>
+                            <button class="btn btn-success" id="addResellingItemBtn">
+                                <i class="fas fa-plus"></i> Add Reselling Item
+                            </button>
+                            <button class="btn btn-info" id="bulkImportResellingBtn">
+                                <i class="fas fa-upload"></i> Bulk Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" placeholder="Search reselling items..." id="resellingSearch">
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-select" id="resellingSupplierFilter">
+                                <option value="">All Suppliers</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="resellingTable">
+                        <p class="text-muted">No reselling items found. Start by adding your first reselling item!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consumables Tab Content -->
+        <div id="consumablesContent" class="tab-content d-none">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <h3><i class="fas fa-flask"></i> Consumables</h3>
+                        <div>
+                            <button class="btn btn-success" id="addConsumableBtn">
+                                <i class="fas fa-plus"></i> Add Consumable
+                            </button>
+                            <button class="btn btn-info" id="bulkImportConsumablesBtn">
+                                <i class="fas fa-upload"></i> Bulk Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" placeholder="Search consumables..." id="consumablesSearch">
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-select" id="consumablesSupplierFilter">
+                                <option value="">All Suppliers</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="consumablesTable">
+                        <p class="text-muted">No consumables found. Start by adding your first consumable!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Office Equipment Tab Content -->
+        <div id="officeEquipmentContent" class="tab-content d-none">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <h3><i class="fas fa-desktop"></i> Office Equipment</h3>
+                        <div>
+                            <button class="btn btn-success" id="addOfficeEquipmentBtn">
+                                <i class="fas fa-plus"></i> Add Office Equipment
+                            </button>
+                            <button class="btn btn-info" id="bulkImportOfficeEquipmentBtn">
+                                <i class="fas fa-upload"></i> Bulk Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" placeholder="Search office equipment..." id="officeEquipmentSearch">
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-select" id="officeEquipmentSupplierFilter">
+                                <option value="">All Suppliers</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="officeEquipmentTable">
+                        <p class="text-muted">No office equipment found. Start by adding your first equipment!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Items Tab Content -->
+        <div id="allItemsContent" class="tab-content d-none">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <h3><i class="fas fa-th-list"></i> All Items</h3>
+                        <div>
+                            <button class="btn btn-success" id="addItemBtn">
+                                <i class="fas fa-plus"></i> Add Item
+                            </button>
+                            <button class="btn btn-info" id="bulkImportBtn">
+                                <i class="fas fa-upload"></i> Bulk Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" placeholder="Search all items..." id="itemSearch">
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select" id="supplierFilter">
+                                <option value="">All Suppliers</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select" id="itemTypeFilter">
+                                <option value="">All Types</option>
+                                <option value="reselling">Reselling Items</option>
+                                <option value="consumable">Consumables</option>
+                                <option value="office_equipment">Office Equipment</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="itemsTable">
+                        <p class="text-muted">No items found. Start by adding your first item!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Invoices Tab Content -->
+        <div id="invoicesContent" class="tab-content d-none">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <h3><i class="fas fa-file-invoice"></i> Invoice Management</h3>
+                        <button class="btn btn-primary" id="uploadInvoiceBtn">
+                            <i class="fas fa-upload"></i> Upload Invoice
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>Invoice Processing (Phase 2)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Invoice processing features will be implemented in Phase 2 of the project.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Tab Content -->
+        <div id="reportsContent" class="tab-content d-none">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <h3><i class="fas fa-chart-bar"></i> Reports & Export</h3>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>Export Options</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-success" id="exportSimplyBluBtn">
+                        <i class="fas fa-file-excel"></i> Export for SimplyBlu
+                    </button>
+                    <button class="btn btn-info ms-2" id="exportFullInventoryBtn">
+                        <i class="fas fa-download"></i> Export Full Inventory
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div class="modal fade" id="addItemModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addItemForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="itemName" class="form-label">Item Name *</label>
+                                    <input type="text" class="form-control" id="itemName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="itemSKU" class="form-label">SKU</label>
+                                    <input type="text" class="form-control" id="itemSKU">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="itemType" class="form-label">Item Type *</label>
+                                    <select class="form-select" id="itemType" required>
+                                        <option value="">Select Item Type</option>
+                                        <option value="reselling">Reselling Item</option>
+                                        <option value="consumable">Consumable</option>
+                                        <option value="office_equipment">Office Equipment</option>
+                                    </select>
+                                    <div class="form-text">This determines pricing fields and inventory tracking</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="itemCategory" class="form-label">Category</label>
+                                    <select class="form-select" id="itemCategory">
+                                        <option value="">Select Category</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Cost Price (all types) -->
+                                <div class="mb-3" id="costPriceGroup">
+                                    <label for="itemCostPrice" class="form-label">Cost Price *</label>
+                                    <input type="number" class="form-control" id="itemCostPrice" step="0.01" required>
+                                    <div class="form-text">How much you paid for this item</div>
+                                </div>
+                                
+                                <!-- Selling Price (reselling items only) -->
+                                <div class="mb-3" id="SellingPriceGroup" style="display: none;">
+                                    <label for="itemSellingPrice" class="form-label">Selling Price *</label>
+                                    <input type="number" class="form-control" id="itemSellingPrice" step="0.01">
+                                    <div class="form-text">Price you sell this item for</div>
+                                </div>
+                                
+                                <!-- Purchase Date (office equipment only) -->
+                                <div class="mb-3" id="PurchaseDateGroup" style="display: none;">
+                                    <label for="itemPurchaseDate" class="form-label">Purchase Date *</label>
+                                    <input type="date" class="form-control" id="itemPurchaseDate">
+                                    <div class="form-text">When this equipment was purchased</div>
+                                </div>
+                                
+                                <!-- Quantity (reselling and consumables only) -->
+                                <div class="mb-3" id="QuantityGroup">
+                                    <label for="itemQuantity" class="form-label">Initial Quantity</label>
+                                    <input type="number" class="form-control" id="itemQuantity" value="0">
+                                    <div class="form-text">Current stock level</div>
+                                </div>
+                                
+                                <!-- Low Stock Threshold (reselling and consumables only) -->
+                                <div class="mb-3" id="LowStockThresholdGroup">
+                                    <label for="itemLowStockThreshold" class="form-label">Low Stock Alert Threshold</label>
+                                    <input type="number" class="form-control" id="itemLowStockThreshold" value="5" min="0">
+                                    <div class="form-text">Alert when stock reaches this level or below</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="itemSupplier" class="form-label">Primary Supplier</label>
+                                    <select class="form-select" id="itemSupplier">
+                                        <option value="">Select Supplier</option>
+                                        <option value="temu">Temu</option>
+                                        <option value="transpharm">Transpharm</option>
+                                        <option value="medis">Medis</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="itemSeller" class="form-label">Seller</label>
+                                    <input type="text" class="form-control" id="itemSeller">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="itemListingName" class="form-label">Listing Name</label>
+                                    <input type="text" class="form-control" id="itemListingName">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="itemAltNames" class="form-label">Alternative Names (comma separated)</label>
+                                    <textarea class="form-control" id="itemAltNames" rows="2"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="itemImage" class="form-label">Item Image</label>
+                                    <input type="file" class="form-control" id="itemImage" accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="itemDescription" class="form-label">Description</label>
+                                    <textarea class="form-control" id="itemDescription" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveItemBtn">Save Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div class="modal fade" id="editItemModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editItemForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editItemName" class="form-label">Item Name *</label>
+                                    <input type="text" class="form-control" id="editItemName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editItemSKU" class="form-label">SKU</label>
+                                    <input type="text" class="form-control" id="editItemSKU">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editItemType" class="form-label">Item Type *</label>
+                                    <select class="form-select" id="editItemType" required>
+                                        <option value="">Select Item Type</option>
+                                        <option value="reselling">Reselling Item</option>
+                                        <option value="consumable">Consumable</option>
+                                        <option value="office_equipment">Office Equipment</option>
+                                    </select>
+                                    <div class="form-text">This determines pricing fields and inventory tracking</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editItemCategory" class="form-label">Category</label>
+                                    <select class="form-select" id="editItemCategory">
+                                        <option value="">Select Category</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Cost Price (all types) -->
+                                <div class="mb-3" id="editCostPriceGroup">
+                                    <label for="editItemCostPrice" class="form-label">Cost Price *</label>
+                                    <input type="number" class="form-control" id="editItemCostPrice" step="0.01" required>
+                                    <div class="form-text">How much you paid for this item</div>
+                                </div>
+                                
+                                <!-- Selling Price (reselling items only) -->
+                                <div class="mb-3" id="editSellingPriceGroup" style="display: none;">
+                                    <label for="editItemSellingPrice" class="form-label">Selling Price *</label>
+                                    <input type="number" class="form-control" id="editItemSellingPrice" step="0.01">
+                                    <div class="form-text">Price you sell this item for</div>
+                                </div>
+                                
+                                <!-- Purchase Date (office equipment only) -->
+                                <div class="mb-3" id="editPurchaseDateGroup" style="display: none;">
+                                    <label for="editItemPurchaseDate" class="form-label">Purchase Date *</label>
+                                    <input type="date" class="form-control" id="editItemPurchaseDate">
+                                    <div class="form-text">When this equipment was purchased</div>
+                                </div>
+                                
+                                <!-- Quantity (reselling and consumables only) -->
+                                <div class="mb-3" id="editQuantityGroup">
+                                    <label for="editItemQuantity" class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" id="editItemQuantity" value="0">
+                                    <div class="form-text">Current stock level</div>
+                                </div>
+                                
+                                <!-- Low Stock Threshold (reselling and consumables only) -->
+                                <div class="mb-3" id="editLowStockThresholdGroup">
+                                    <label for="editItemLowStockThreshold" class="form-label">Low Stock Alert Threshold</label>
+                                    <input type="number" class="form-control" id="editItemLowStockThreshold" value="5" min="0">
+                                    <div class="form-text">Alert when stock reaches this level or below</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editItemSupplier" class="form-label">Primary Supplier</label>
+                                    <select class="form-select" id="editItemSupplier">
+                                        <option value="">Select Supplier</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editItemSeller" class="form-label">Seller</label>
+                                    <input type="text" class="form-control" id="editItemSeller">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editItemListingName" class="form-label">Listing Name</label>
+                                    <input type="text" class="form-control" id="editItemListingName">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editItemAltNames" class="form-label">Alternative Names (comma separated)</label>
+                                    <textarea class="form-control" id="editItemAltNames" rows="2"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editItemImage" class="form-label">Item Image</label>
+                                    <input type="file" class="form-control" id="editItemImage" accept="image/*">
+                                    <div class="form-text">Leave empty to keep current image</div>
+                                    <div id="editCurrentImagePreview" class="mt-2" style="display: none;">
+                                        <small class="text-muted">Current image:</small><br>
+                                        <img id="editCurrentImage" style="max-width: 100px; max-height: 100px; object-fit: cover;" class="rounded mt-1">
+                                    </div>
+                                    <div id="editImagePreview" class="mt-2" style="display: none;">
+                                        <small class="text-muted">New image preview:</small><br>
+                                        <img style="max-width: 100px; max-height: 100px; object-fit: cover;" class="rounded mt-1">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="editItemDescription" class="form-label">Description</label>
+                                    <textarea class="form-control" id="editItemDescription" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="editItemId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" id="updateItemBtn">Update Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Supplier Modal -->
+    <div class="modal fade" id="addSupplierModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addSupplierForm">
+                        <div class="mb-3">
+                            <label for="supplierName" class="form-label">Supplier Name *</label>
+                            <input type="text" class="form-control" id="supplierName" required 
+                                   placeholder="Enter supplier name">
+                            <div class="form-text">This will appear in dropdowns and reports</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierCode" class="form-label">Supplier Code *</label>
+                            <input type="text" class="form-control" id="supplierCode" required 
+                                   placeholder="Enter unique code (e.g., 'amazon', 'ebay')">
+                            <div class="form-text">Short, unique identifier (lowercase, no spaces)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierColor" class="form-label">Badge Color</label>
+                            <div class="row">
+                                <div class="col-8">
+                                    <input type="color" class="form-control form-control-color" id="supplierColor" 
+                                           value="#6f42c1" title="Choose badge color">
+                                </div>
+                                <div class="col-4">
+                                    <div class="d-flex align-items-center h-100">
+                                        <span class="badge" id="colorPreview" style="background-color: #6f42c1;">Preview</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text">Color for supplier badges in the interface</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="supplierDescription" rows="2" 
+                                      placeholder="Optional description or notes about this supplier"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierWebsite" class="form-label">Website</label>
+                            <input type="url" class="form-control" id="supplierWebsite" 
+                                   placeholder="https://example.com">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="saveSupplierBtn">Save Supplier</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Supplier Modal -->
+    <div class="modal fade" id="editSupplierModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editSupplierForm">
+                        <div class="mb-3">
+                            <label for="editSupplierName" class="form-label">Supplier Name *</label>
+                            <input type="text" class="form-control" id="editSupplierName" required 
+                                   placeholder="Enter supplier name">
+                            <div class="form-text">This will appear in dropdowns and reports</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editSupplierCode" class="form-label">Supplier Code *</label>
+                            <input type="text" class="form-control" id="editSupplierCode" required 
+                                   placeholder="Enter unique code (e.g., 'amazon', 'ebay')">
+                            <div class="form-text">Short, unique identifier (lowercase, no spaces)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editSupplierColor" class="form-label">Badge Color</label>
+                            <div class="row">
+                                <div class="col-8">
+                                    <input type="color" class="form-control form-control-color" id="editSupplierColor" 
+                                           value="#6f42c1" title="Choose badge color">
+                                </div>
+                                <div class="col-4">
+                                    <div class="d-flex align-items-center h-100">
+                                        <span class="badge" id="editColorPreview" style="background-color: #6f42c1;">Preview</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text">Color for supplier badges in the interface</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editSupplierDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="editSupplierDescription" rows="2" 
+                                      placeholder="Optional description or notes about this supplier"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editSupplierWebsite" class="form-label">Website</label>
+                            <input type="url" class="form-control" id="editSupplierWebsite" 
+                                   placeholder="https://example.com">
+                        </div>
+                        <input type="hidden" id="editSupplierId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" id="updateSupplierBtn">Update Supplier</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Suppliers Modal -->
+    <div class="modal fade" id="manageSuppliersModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-truck"></i> Manage Suppliers</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <input type="text" class="form-control me-2" placeholder="Search suppliers..." id="supplierModalSearch" style="width: 300px;">
+                                </div>
+                                <button class="btn btn-success" id="addSupplierModalBtn">
+                                    <i class="fas fa-plus"></i> Add Supplier
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="suppliersModalTable">
+                        <p class="text-muted">Loading suppliers...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Categories Modal -->
+    <div class="modal fade" id="manageCategoriesModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-tags"></i> Manage Categories</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <input type="text" class="form-control me-2" placeholder="Search categories..." id="categoryModalSearch" style="width: 300px;">
+                                </div>
+                                <button class="btn btn-success" id="addCategoryModalBtn">
+                                    <i class="fas fa-plus"></i> Add Category
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="categoriesModalTable">
+                        <p class="text-muted">Loading categories...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div class="modal fade" id="addCategoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addCategoryForm">
+                        <div class="mb-3">
+                            <label for="categoryName" class="form-label">Category Name *</label>
+                            <input type="text" class="form-control" id="categoryName" required 
+                                   placeholder="Enter category name">
+                            <div class="form-text">This will appear in item dropdowns</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="categoryCode" class="form-label">Category Code *</label>
+                            <input type="text" class="form-control" id="categoryCode" required 
+                                   placeholder="Enter unique code (e.g., 'orthotics', 'equipment')">
+                            <div class="form-text">Short, unique identifier (lowercase, underscores allowed)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="categoryColor" class="form-label">Badge Color</label>
+                            <div class="row">
+                                <div class="col-8">
+                                    <input type="color" class="form-control form-control-color" id="categoryColor" 
+                                           value="#6c757d" title="Choose badge color">
+                                </div>
+                                <div class="col-4">
+                                    <div class="d-flex align-items-center h-100">
+                                        <span class="badge" id="categoryColorPreview" style="background-color: #6c757d;">Preview</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text">Color for category badges in the interface</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="categoryDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="categoryDescription" rows="2" 
+                                      placeholder="Optional description of this category"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="saveCategoryBtn">Save Category</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div class="modal fade" id="editCategoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editCategoryForm">
+                        <div class="mb-3">
+                            <label for="editCategoryName" class="form-label">Category Name *</label>
+                            <input type="text" class="form-control" id="editCategoryName" required 
+                                   placeholder="Enter category name">
+                            <div class="form-text">This will appear in item dropdowns</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCategoryCode" class="form-label">Category Code *</label>
+                            <input type="text" class="form-control" id="editCategoryCode" required 
+                                   placeholder="Enter unique code (e.g., 'orthotics', 'equipment')">
+                            <div class="form-text">Short, unique identifier (lowercase, underscores allowed)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCategoryColor" class="form-label">Badge Color</label>
+                            <div class="row">
+                                <div class="col-8">
+                                    <input type="color" class="form-control form-control-color" id="editCategoryColor" 
+                                           value="#6c757d" title="Choose badge color">
+                                </div>
+                                <div class="col-4">
+                                    <div class="d-flex align-items-center h-100">
+                                        <span class="badge" id="editCategoryColorPreview" style="background-color: #6c757d;">Preview</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text">Color for category badges in the interface</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCategoryDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="editCategoryDescription" rows="2" 
+                                      placeholder="Optional description of this category"></textarea>
+                        </div>
+                        <input type="hidden" id="editCategoryId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" id="updateCategoryBtn">Update Category</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Management Modal -->
+    <div class="modal fade" id="dataManagementModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-database"></i> Data Management</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Hybrid Backup System:</strong> Your data is protected with both automatic and file backups:
+                                <ul class="mb-2 mt-2">
+                                    <li><strong>Auto Backup:</strong> Every 15 minutes to browser storage (last 10 kept)</li>
+                                    <li><strong>Daily Export:</strong> Automatically downloads a file backup once per day</li>
+                                    <li><strong>Manual Backup:</strong> Instantly creates both browser and file backups</li>
+                                    <li><strong>Export:</strong> Convert any browser backup to a downloadable file</li>
+                                </ul>
+                                <div class="alert alert-warning mb-2 mt-2">
+                                    <i class="fas fa-download"></i> <strong>File Downloads:</strong> Backup files download to your <code>Downloads</code> folder. 
+                                    Run <code>backups/organize-backups.bat</code> to move them to the <code>backups/auto</code> and <code>backups/manual</code> folders.
+                                </div>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <button class="btn btn-sm btn-outline-primary" id="copyOrganizerPathBtn" title="Copy organizer path to clipboard">
+                                        <i class="fas fa-copy"></i> Copy Path
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-success" id="openBackupsFolderBtn" title="Open backups folder in file explorer">
+                                        <i class="fas fa-folder-open"></i> Open Folder
+                                    </button>
+                                    <small class="text-muted">Quick access to backup organization tools</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-download"></i> Export Data</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">Export all your data to a JSON file for backup or transfer.</p>
+                                    <button class="btn btn-success" id="exportDataBtn">
+                                        <i class="fas fa-download"></i> Export All Data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-upload"></i> Import Data</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">Import data from a previously exported JSON file.</p>
+                                    <input type="file" class="form-control mb-2" id="importDataFile" accept=".json">
+                                    <button class="btn btn-primary" id="importDataBtn" disabled>
+                                        <i class="fas fa-upload"></i> Import Data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="fas fa-clock"></i> Backups</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <button class="btn btn-warning" id="createManualBackupBtn">
+                                            <i class="fas fa-save"></i> Create Manual Backup
+                                        </button>
+                                        <div class="form-text">Create an instant backup of your current data</div>
+                                    </div>
+                                    <p class="card-text">View and restore from automatic and manual backups.</p>
+                                    <div id="autoBackupsList">
+                                        <p class="text-muted">Loading backups...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Data Statistics</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="dataStats">
+                                        <p class="text-muted">Loading statistics...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Items Modal -->
+    <div class="modal fade" id="lowStockItemsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle text-warning"></i> Low Stock Items</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Stock Alert:</strong> The following items are at or below their low stock threshold.
+                        Review and order items as needed to maintain adequate inventory levels.
+                    </div>
+                    
+                    <div id="lowStockItemsTable">
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Orders Modal -->
+    <div class="modal fade" id="pendingOrdersModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-clock text-info"></i> Pending Orders</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Order Status:</strong> The following items have been ordered and are waiting to be received.
+                        Mark items as received when they arrive to update your stock levels.
+                    </div>
+                    
+                    <div id="pendingOrdersTable">
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Item Modal -->
+    <div class="modal fade" id="orderItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-shopping-cart"></i> Order Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="orderItemForm">
+                        <div class="mb-3">
+                            <label class="form-label">Item</label>
+                            <div id="orderItemName" class="form-control-plaintext bg-light p-2 rounded"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Current Stock</label>
+                                    <div id="orderCurrentStock" class="form-control-plaintext bg-light p-2 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Low Stock Threshold</label>
+                                    <div id="orderLowStockThreshold" class="form-control-plaintext bg-light p-2 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="orderQuantity" class="form-label">Quantity to Order *</label>
+                            <input type="number" class="form-control" id="orderQuantity" min="1" required>
+                            <div class="form-text">How many units are you ordering?</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="orderUnitCost" class="form-label">Unit Cost *</label>
+                            <input type="number" class="form-control" id="orderUnitCost" step="0.01" min="0" required>
+                            <div class="form-text">Current price per unit from supplier (update if price has changed)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="orderDate" class="form-label">Order Date *</label>
+                            <input type="date" class="form-control" id="orderDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="expectedDelivery" class="form-label">Expected Delivery Date</label>
+                            <input type="date" class="form-control" id="expectedDelivery">
+                            <div class="form-text">Optional: When do you expect to receive this order?</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="orderSupplier" class="form-label">Supplier *</label>
+                            <select class="form-select" id="orderSupplier" required>
+                                <option value="">Select Supplier</option>
+                            </select>
+                            <div class="form-text">Choose where you're ordering this item from</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="orderInvoiceReference" class="form-label">Invoice/Receipt Reference</label>
+                            <input type="text" class="form-control" id="orderInvoiceReference" 
+                                   placeholder="e.g., INV-2024-001, Receipt #12345">
+                            <div class="form-text">Optional: Reference number for tracking this purchase</div>
+                        </div>
+                        <input type="hidden" id="orderItemId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmOrderBtn">
+                        <i class="fas fa-shopping-cart"></i> Mark as Ordered
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase History Modal -->
+    <div class="modal fade" id="purchaseHistoryModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-receipt"></i> Purchase History</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="purchaseSupplierFilter" class="form-label">Filter by Supplier</label>
+                            <select class="form-select" id="purchaseSupplierFilter">
+                                <option value="">All Suppliers</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="purchaseInvoiceFilter" class="form-label">Invoice Reference</label>
+                            <input type="text" class="form-control" id="purchaseInvoiceFilter" placeholder="Search invoices...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="purchaseStatusFilter" class="form-label">Status</label>
+                            <select class="form-select" id="purchaseStatusFilter">
+                                <option value="">All Statuses</option>
+                                <option value="ordered">Ordered</option>
+                                <option value="received">Received</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button class="btn btn-primary" id="filterPurchasesBtn">
+                                    <i class="fas fa-filter"></i> Filter
+                                </button>
+                                <button class="btn btn-secondary" id="clearPurchaseFiltersBtn">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="purchaseHistoryTable">
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="me-auto">
+                        <button class="btn btn-success" id="exportPurchasesBtn">
+                            <i class="fas fa-download"></i> Export to CSV
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Details Modal -->
+    <div class="modal fade" id="purchaseDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-receipt"></i> Purchase Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="purchaseDetailsContent">
+                    <!-- Purchase details will be populated here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning" id="markReceivedBtn" style="display: none;">
+                        <i class="fas fa-check"></i> Mark as Received
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Sale Modal (for reselling items) -->
+    <div class="modal fade" id="stockSaleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-cash-register"></i> Record Stock Sale</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="stockSaleForm">
+                        <div class="mb-3">
+                            <label class="form-label">Item</label>
+                            <div id="saleItemName" class="form-control-plaintext bg-light p-2 rounded"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Current Stock</label>
+                                    <div id="saleCurrentStock" class="form-control-plaintext bg-light p-2 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Cost Price</label>
+                                    <div id="saleCostPrice" class="form-control-plaintext bg-light p-2 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="saleQuantity" class="form-label">Quantity Sold *</label>
+                            <input type="number" class="form-control" id="saleQuantity" min="1" required>
+                            <div class="form-text">How many units were sold?</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="salePrice" class="form-label">Sale Price per Unit *</label>
+                            <input type="number" class="form-control" id="salePrice" step="0.01" min="0" required>
+                            <div class="form-text">Price you sold each unit for</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="saleNotes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="saleNotes" rows="2" 
+                                      placeholder="Optional notes about this sale"></textarea>
+                        </div>
+                        <input type="hidden" id="saleItemId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmSaleBtn">
+                        <i class="fas fa-cash-register"></i> Record Sale
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Usage Modal (for consumables) -->
+    <div class="modal fade" id="stockUsageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-minus-circle"></i> Record Stock Usage</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="stockUsageForm">
+                        <div class="mb-3">
+                            <label class="form-label">Item</label>
+                            <div id="usageItemName" class="form-control-plaintext bg-light p-2 rounded"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Current Stock</label>
+                                    <div id="usageCurrentStock" class="form-control-plaintext bg-light p-2 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Cost Price</label>
+                                    <div id="usageCostPrice" class="form-control-plaintext bg-light p-2 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="usageQuantity" class="form-label">Quantity Used *</label>
+                            <input type="number" class="form-control" id="usageQuantity" min="1" required>
+                            <div class="form-text">How many units were consumed/used?</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="usageNotes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="usageNotes" rows="2" 
+                                      placeholder="Optional notes about this usage (e.g., patient treatment, procedure)"></textarea>
+                        </div>
+                        <input type="hidden" id="usageItemId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" id="confirmUsageBtn">
+                        <i class="fas fa-minus-circle"></i> Record Usage
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Item Details Modal -->
+    <div class="modal fade" id="enhancedItemDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-info-circle"></i> <span id="itemDetailsTitle"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="itemDetailsContent">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="me-auto">
+                        <button type="button" class="btn btn-info" id="markReceivedFromItemBtn" style="display: none;">
+                            <i class="fas fa-box-open"></i> Mark as Received
+                        </button>
+                        <button type="button" class="btn btn-success" id="recordSaleBtn" style="display: none;">
+                            <i class="fas fa-cash-register"></i> Record Sale
+                        </button>
+                        <button type="button" class="btn btn-warning" id="recordUsageBtn" style="display: none;">
+                            <i class="fas fa-minus-circle"></i> Record Usage
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="editItemFromDetailsBtn">
+                        <i class="fas fa-edit"></i> Edit Item
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mark Item Received Modal -->
+    <div class="modal fade" id="markItemReceivedModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-box-open"></i> Mark Item as Received</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Receiving Order:</strong> This will update your stock levels and mark the order as received.
+                    </div>
+                    
+                    <form id="markReceivedForm">
+                        <div class="mb-3">
+                            <label class="form-label">Item</label>
+                            <div id="receivedItemName" class="form-control-plaintext bg-light p-2 rounded"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Current Stock</label>
+                                    <div id="receivedCurrentStock" class="form-control-plaintext bg-light p-2 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Ordered Quantity</label>
+                                    <div id="receivedOrderedQuantity" class="form-control-plaintext bg-light p-2 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="receivedQuantity" class="form-label">Quantity Received *</label>
+                            <input type="number" class="form-control" id="receivedQuantity" min="1" required>
+                            <div class="form-text">How many units did you actually receive? (may be different from ordered quantity)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="actualUnitCost" class="form-label">Actual Unit Cost</label>
+                            <input type="number" class="form-control" id="actualUnitCost" step="0.01" min="0">
+                            <div class="form-text">Leave empty to use the ordered cost, or update if the actual cost was different</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="receivedNotes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="receivedNotes" rows="2" 
+                                      placeholder="Optional notes about this delivery (e.g., condition, partial delivery, etc.)"></textarea>
+                        </div>
+                        <input type="hidden" id="receivedItemId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmReceivedBtn">
+                        <i class="fas fa-box-open"></i> Mark as Received
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Order Modal -->
+    <div class="modal fade" id="editOrderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Order</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Edit Order:</strong> You can modify order details before the items are received.
+                    </div>
+                    
+                    <form id="editOrderForm">
+                        <div class="mb-3">
+                            <label class="form-label">Item</label>
+                            <div id="editOrderItemName" class="form-control-plaintext bg-light p-2 rounded"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editOrderQuantity" class="form-label">Quantity to Order *</label>
+                            <input type="number" class="form-control" id="editOrderQuantity" min="1" required>
+                            <div class="form-text">Update the quantity you want to order</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editOrderUnitCost" class="form-label">Unit Cost *</label>
+                            <input type="number" class="form-control" id="editOrderUnitCost" step="0.01" min="0" required>
+                            <div class="form-text">Update the cost per unit if needed</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editOrderSupplier" class="form-label">Supplier *</label>
+                            <select class="form-select" id="editOrderSupplier" required>
+                                <option value="">Select Supplier</option>
+                            </select>
+                            <div class="form-text">Change supplier if needed</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editOrderDate" class="form-label">Order Date *</label>
+                            <input type="date" class="form-control" id="editOrderDate" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editOrderExpectedDelivery" class="form-label">Expected Delivery Date</label>
+                            <input type="date" class="form-control" id="editOrderExpectedDelivery">
+                            <div class="form-text">Optional: When do you expect to receive this order?</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editOrderInvoiceReference" class="form-label">Invoice/Receipt Reference</label>
+                            <input type="text" class="form-control" id="editOrderInvoiceReference" 
+                                   placeholder="e.g., INV-2024-001, Receipt #12345">
+                            <div class="form-text">Optional: Reference number for tracking this purchase</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Order Summary</label>
+                            <div class="alert alert-info">
+                                <div class="row">
+                                    <div class="col-sm-6"><strong>Current Total:</strong></div>
+                                    <div class="col-sm-6" id="editOrderCurrentTotal">$0.00</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-6"><strong>New Total:</strong></div>
+                                    <div class="col-sm-6" id="editOrderNewTotal">$0.00</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" id="editOrderId">
+                        <input type="hidden" id="editOrderItemId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="cancelOrderBtn" style="display: none;">
+                        <i class="fas fa-times"></i> Cancel Order
+                    </button>
+                    <button type="button" class="btn btn-warning" id="updateOrderBtn">
+                        <i class="fas fa-save"></i> Update Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Import Modal -->
+    <div class="modal fade" id="bulkImportModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-upload"></i> Bulk Import Items</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Step 1: File Type and Profile Selection -->
+                    <div id="importStep1" class="import-step">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-file"></i> File Type</h6>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="fileType" id="csvFileType" value="csv" checked>
+                                    <label class="form-check-label" for="csvFileType">
+                                        <i class="fas fa-file-csv"></i> CSV File (.csv)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="fileType" id="excelFileType" value="excel">
+                                    <label class="form-check-label" for="excelFileType">
+                                        <i class="fas fa-file-excel"></i> Excel File (.xlsx, .xls)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-cogs"></i> Import Profile</h6>
+                                <select class="form-select" id="importProfile">
+                                    <option value="">Create New Profile...</option>
+                                    <option value="halaxy">Halaxy Medical Practice</option>
+                                </select>
+                                <div class="form-text">Select a predefined profile or create a new one</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6><i class="fas fa-upload"></i> Upload File</h6>
+                            <input type="file" class="form-control" id="importFile" accept=".csv,.xlsx,.xls">
+                            <div class="form-text">Select your CSV or Excel file to import</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Field Mapping -->
+                    <div id="importStep2" class="import-step d-none">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-link"></i> Field Mapping</h6>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                Map the columns from your file to the corresponding item fields in FeetOnFocus.
+                            </div>
+                        </div>
+                        
+                        <div id="fieldMappingContainer">
+                            <!-- Field mapping will be populated dynamically -->
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="profileName" class="form-label">Save as Profile (Optional)</label>
+                                    <input type="text" class="form-control" id="profileName" placeholder="e.g., My Custom Import">
+                                    <div class="form-text">Save this mapping as a reusable profile</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="itemType" class="form-label">Default Item Type *</label>
+                                    <select class="form-select" id="itemType" required>
+                                        <option value="">Select item type for imported items</option>
+                                        <option value="reselling">Reselling Items</option>
+                                        <option value="consumables">Consumables</option>
+                                        <option value="office_equipment">Office Equipment</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Preview -->
+                    <div id="importStep3" class="import-step d-none">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-eye"></i> Import Preview</h6>
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                Review the data below before importing. <span id="previewCount">0</span> items will be imported.
+                            </div>
+                        </div>
+                        
+                        <div id="previewContainer" class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Preview table will be populated dynamically -->
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="updateExisting" checked>
+                                <label class="form-check-label" for="updateExisting">
+                                    Update existing items (match by name or SKU)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="me-auto">
+                        <span class="badge bg-secondary" id="currentStep">Step 1 of 3</span>
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="prevStepBtn" style="display: none;">Previous</button>
+                    <button type="button" class="btn btn-primary" id="nextStepBtn">Next</button>
+                    <button type="button" class="btn btn-success" id="importBtn" style="display: none;">
+                        <i class="fas fa-upload"></i> Import Items
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Profile Management Modal -->
+    <div class="modal fade" id="importProfileModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-cogs"></i> Manage Import Profiles</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <button class="btn btn-primary" id="createProfileBtn">
+                            <i class="fas fa-plus"></i> Create New Profile
+                        </button>
+                    </div>
+                    
+                    <div id="profilesList">
+                        <!-- Profiles list will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Application Scripts -->
+    <script src="src/database/database.js"></script>
+    <script src="src/utils/helpers.js"></script>
+    <script src="src/ui/dashboard.js"></script>
+    <script src="src/ui/items.js"></script>
+    <script src="src/ui/suppliers.js"></script>
+    <script src="src/ui/categories.js"></script>
+    <script src="src/ui/dataManager.js"></script>
+    <script src="src/ui/reports.js"></script>
+    <script src="src/ui/purchases.js"></script>
+    <script src="src/ui/stockManager.js"></script>
+    <script src="src/ui/bulkImport.js"></script>
+    <script src="src/main.js"></script>
+</body>
+</html>

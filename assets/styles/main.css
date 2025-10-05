@@ -1,0 +1,616 @@
+/**
+ * FeetOnFocus Custom Styles
+ * Brand Colors: Primary Pink #E91E63, Secondary Dark #212529, Accent White #FFFFFF
+ */
+
+/* Brand Color Variables */
+:root {
+    --feet-primary: #E91E63;
+    --feet-primary-dark: #C2185B;
+    --feet-primary-light: #F8BBD9;
+    --feet-secondary: #212529;
+    --feet-secondary-light: #495057;
+    --feet-accent: #FFFFFF;
+    --feet-success: #28a745;
+    --feet-warning: #ffc107;
+    --feet-info: #17a2b8;
+    --feet-danger: #dc3545;
+    --feet-light: #f8f9fa;
+    --feet-dark: #212529;
+}
+
+/* Global Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--feet-light);
+    color: var(--feet-secondary);
+}
+
+/* Navigation */
+.bg-feet-primary {
+    background-color: var(--feet-primary) !important;
+}
+
+.bg-feet-dark {
+    background-color: var(--feet-dark) !important;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+    color: var(--feet-accent) !important;
+}
+
+.navbar-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--feet-accent);
+}
+
+.navbar-brand i {
+    margin-right: 0.5rem;
+    color: var(--feet-accent);
+}
+
+/* Black navbar with pink tabs styling */
+.bg-feet-dark .navbar-nav .nav-link {
+    color: #adb5bd !important;
+    font-weight: 500;
+    margin: 0 0.25rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.bg-feet-dark .navbar-nav .nav-link:hover {
+    color: var(--feet-accent) !important;
+    background-color: rgba(233, 30, 99, 0.1);
+    border-color: var(--feet-primary);
+    transform: translateY(-2px);
+}
+
+.bg-feet-dark .navbar-nav .nav-link.active {
+    color: var(--feet-accent) !important;
+    background-color: var(--feet-primary);
+    border-color: var(--feet-primary);
+    box-shadow: 0 4px 8px rgba(233, 30, 99, 0.3);
+    transform: translateY(-2px);
+}
+
+.bg-feet-dark .navbar-nav .nav-link i {
+    margin-right: 0.5rem;
+}
+
+/* Enhanced navbar styling */
+.bg-feet-dark {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    border-bottom: 3px solid var(--feet-primary);
+}
+
+/* Dropdown menu styling to match navbar tabs */
+.dropdown-menu {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+    border-radius: 0.375rem;
+    margin: 0.125rem 0.25rem;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--feet-primary) !important;
+    color: white !important;
+    transform: translateX(2px);
+}
+
+.dropdown-item:active,
+.dropdown-item.active {
+    background-color: var(--feet-primary-dark) !important;
+    color: white !important;
+}
+
+.dropdown-item i {
+    width: 1.2rem;
+    text-align: center;
+    margin-right: 0.5rem;
+}
+
+/* Override Bootstrap dropdown defaults */
+.navbar .dropdown-menu .dropdown-item:hover,
+.navbar .dropdown-menu .dropdown-item:focus {
+    background-color: var(--feet-primary) !important;
+    color: white !important;
+}
+
+.navbar .dropdown-menu .dropdown-item:active,
+.navbar .dropdown-menu .dropdown-item.active {
+    background-color: var(--feet-primary-dark) !important;
+    color: white !important;
+}
+
+/* Ensure text color contrast */
+.dropdown-item {
+    color: var(--feet-secondary) !important;
+}
+
+.dropdown-item:hover i,
+.dropdown-item:focus i,
+.dropdown-item:active i,
+.dropdown-item.active i {
+    color: white !important;
+}
+
+/* Better navbar toggler for mobile */
+.bg-feet-dark .navbar-toggler {
+    border-color: var(--feet-primary);
+}
+
+.bg-feet-dark .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23E91E63' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='m4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Logo hover effect */
+.navbar-logo {
+    transition: all 0.3s ease;
+}
+
+.navbar-logo:hover {
+    transform: rotate(10deg) scale(1.1);
+    border-color: var(--feet-primary);
+}
+
+/* Fix button click events - make icons non-clickable */
+.btn i,
+.dropdown-item i,
+button i {
+    pointer-events: none;
+}
+
+/* Modal z-index layering fixes */
+/* Ensure stock usage and sale modals appear above item details modal */
+#stockUsageModal,
+#stockSaleModal,
+#markItemReceivedModal {
+    z-index: 1070 !important; /* Higher than default Bootstrap modal z-index of 1055 */
+}
+
+#stockUsageModal .modal-backdrop,
+#stockSaleModal .modal-backdrop,
+#markItemReceivedModal .modal-backdrop {
+    z-index: 1069 !important; /* Backdrop should be just below the modal */
+}
+
+/* Cards */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* Dashboard Cards */
+.card.bg-primary, 
+.card.bg-success, 
+.card.bg-warning, 
+.card.bg-info {
+    border: none;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* Custom FeetOnFocus dashboard cards */
+.card.bg-primary {
+    background: linear-gradient(135deg, var(--feet-primary) 0%, var(--feet-primary-dark) 100%) !important;
+}
+
+.card.bg-success {
+    background: linear-gradient(135deg, var(--feet-success) 0%, #1e7e34 100%) !important;
+}
+
+.card.bg-warning {
+    background: linear-gradient(135deg, var(--feet-warning) 0%, #e0a800 100%) !important;
+}
+
+.card.bg-info {
+    background: linear-gradient(135deg, var(--feet-info) 0%, #138496 100%) !important;
+}
+
+.card.bg-warning .card-body {
+    color: #000 !important;
+}
+
+/* Tables */
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    border-top: none;
+    font-weight: 600;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-responsive {
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 0.375rem;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: var(--feet-primary);
+    border-color: var(--feet-primary);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--feet-primary-dark);
+    border-color: var(--feet-primary-dark);
+    box-shadow: 0 0 0 0.2rem rgba(233, 30, 99, 0.25);
+}
+
+.btn-success {
+    background-color: var(--feet-success);
+    border-color: var(--feet-success);
+}
+
+.btn-outline-primary {
+    color: var(--feet-primary);
+    border-color: var(--feet-primary);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    background-color: var(--feet-primary);
+    border-color: var(--feet-primary);
+}
+
+.btn-group-sm .btn {
+    border-radius: 0.25rem;
+}
+
+/* Forms */
+.form-control, .form-select {
+    border-radius: 0.375rem;
+    border-color: #dee2e6;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--feet-primary);
+    box-shadow: 0 0 0 0.2rem rgba(233, 30, 99, 0.25);
+}
+
+.form-label {
+    color: var(--feet-secondary);
+    font-weight: 500;
+}
+
+/* Modal */
+.modal-content {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
+}
+
+/* Image Preview */
+.img-thumbnail {
+    border-radius: 0.375rem;
+}
+
+/* Toast Notifications */
+.toast-container {
+    z-index: 1200;
+}
+
+.toast {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* Loading States */
+.spinner-border-lg {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Badge Styles */
+.badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+/* Activity Items */
+.border-bottom {
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+/* Supplier Badge Colors - FeetOnFocus Theme */
+.badge.bg-warning {
+    color: #000;
+}
+
+/* Custom supplier badges matching brand */
+.badge.bg-temu {
+    background-color: #FF6B35 !important;
+    color: white;
+}
+
+.badge.bg-transpharm {
+    background-color: var(--feet-info) !important;
+    color: white;
+}
+
+.badge.bg-medis {
+    background-color: var(--feet-success) !important;
+    color: white;
+}
+
+/* Dynamic supplier badges */
+.badge[style*="background-color"] {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: 500;
+}
+
+/* Color picker styling */
+.form-control-color {
+    width: 100%;
+    height: 38px;
+    border-radius: 0.375rem;
+}
+
+/* Supplier code styling */
+code {
+    background-color: var(--feet-light);
+    color: var(--feet-primary);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+}
+
+/* Supplier management specific styles */
+.supplier-badge-preview {
+    transition: all 0.2s ease;
+}
+
+.supplier-badge-preview:hover {
+    transform: scale(1.05);
+}
+
+/* Activity badge enhancements */
+.badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    font-weight: 500;
+}
+
+/* Image placeholders */
+.bg-light {
+    background-color: #f8f9fa !important;
+    color: #6c757d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+    
+    /* Mobile navbar adjustments */
+    .bg-feet-dark .navbar-nav .nav-link {
+        margin: 0.25rem 0;
+        text-align: center;
+    }
+    
+    .navbar-logo {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .card .d-flex {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .card .d-flex > div:last-child {
+        margin-top: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .navbar, .btn, .modal, .toast-container {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #000;
+        break-inside: avoid;
+    }
+    
+    .table {
+        border: 1px solid #000;
+    }
+    
+    .table th, .table td {
+        border: 1px solid #000;
+    }
+}
+
+/* Dark mode support (future enhancement) */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #212529;
+        color: #fff;
+    }
+    
+    .card {
+        background-color: #343a40;
+        border-color: #495057;
+    }
+    
+    .card-header {
+        background-color: #495057;
+        border-color: #6c757d;
+    }
+    
+    .table {
+        color: #fff;
+    }
+    
+    .table thead th {
+        background-color: #495057;
+        border-color: #6c757d;
+        color: #fff;
+    }
+    
+    .bg-light {
+        background-color: #495057 !important;
+        color: #adb5bd !important;
+    }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-content {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Loading Screen Branding */
+#appLoading {
+    background: linear-gradient(135deg, var(--feet-primary-light) 0%, rgba(248, 249, 250, 0.95) 100%);
+}
+
+#appLoading .spinner-border {
+    color: var(--feet-primary);
+}
+
+#appLoading h5 {
+    color: var(--feet-secondary);
+    font-weight: 600;
+}
+
+/* Modal Header with Brand Color */
+.modal-header {
+    background: linear-gradient(135deg, var(--feet-primary) 0%, var(--feet-primary-dark) 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.modal-header .btn-close {
+    filter: invert(1);
+}
+
+.modal-title {
+    font-weight: 600;
+}
+
+/* Focus states for accessibility */
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+    outline: 2px solid var(--feet-primary);
+    outline-offset: 2px;
+}
+
+/* FeetOnFocus Brand Accents */
+.card-header h5 {
+    color: var(--feet-secondary);
+    font-weight: 600;
+}
+
+/* Table header styling */
+.table thead th {
+    background-color: var(--feet-primary-light);
+    color: var(--feet-secondary);
+    border-bottom: 2px solid var(--feet-primary);
+}
+
+/* Link colors */
+a {
+    color: var(--feet-primary);
+}
+
+a:hover {
+    color: var(--feet-primary-dark);
+}
+
+/* Activity item styling */
+.border-bottom {
+    border-bottom: 1px solid var(--feet-primary-light) !important;
+}
+
+/* Toast notification branding */
+.toast.bg-success {
+    background-color: var(--feet-success) !important;
+}
+
+.toast.bg-danger {
+    background-color: var(--feet-danger) !important;
+}
+
+.toast.bg-info {
+    background-color: var(--feet-info) !important;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .card {
+        border: 2px solid #000;
+    }
+    
+    .btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Brand watermark - subtle background enhancement */
+.container-fluid::before {
+    content: '';
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background-image: url('../logo/FEET_LOGO round updated.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    border-radius: 50%;
+    opacity: 0.1;
+    z-index: -1;
+}
