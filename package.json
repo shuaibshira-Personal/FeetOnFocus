@@ -1,0 +1,60 @@
+{
+  "name": "feetonfocus",
+  "version": "1.0.0",
+  "description": "FeetOnFocus Inventory Management System - Desktop Application",
+  "main": "electron/main.js",
+  "author": "Your Name",
+  "license": "MIT",
+  "homepage": "./",
+  "scripts": {
+    "electron": "electron .",
+    "electron-dev": "electron . --dev",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win",
+    "dist": "electron-builder --publish=never",
+    "package": "electron-packager . FeetOnFocus-Inventory --platform=win32 --arch=x64 --out=dist --overwrite"
+  },
+  "devDependencies": {
+    "electron": "^32.3.3",
+    "electron-builder": "^25.1.8",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.feetonfocus.inventory",
+    "productName": "FeetOnFocus Inventory",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/",
+      "src/",
+      "assets/",
+      "backups/",
+      "index.html",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "sign": null
+    },
+    "portable": {
+      "artifactName": "FeetOnFocus-Inventory-Portable.exe"
+    },
+    "compression": "store",
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

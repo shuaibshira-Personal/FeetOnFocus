@@ -1664,46 +1664,62 @@ class InventoryDatabase {
     }
 
     /**
-     * Create downloadable file backup
+     * Create file backup (desktop or browser download)
      */
     async createFileSystemBackup(data, timestamp, type = 'auto') {
         try {
             const fileName = `feetonfocus_${type}_${timestamp}.json`;
-            const dataStr = JSON.stringify(data, null, 2);
             
-            // Create downloadable blob
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            
-            // Create temporary download link
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            link.style.display = 'none';
-            
-            // Trigger download
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Clean up blob URL
-            URL.revokeObjectURL(url);
-            
-            console.log(`File system backup created: ${fileName}`);
-            
-            // Track backup download and show reminder
-            this.trackBackupDownload();
-            
-            // Show immediate organization reminder for manual/daily backups
-            if (type === 'manual' || type === 'daily') {
-                setTimeout(() => {
-                    if (typeof showToast === 'function') {
-                        showToast(`📁 Backup downloaded as ${fileName}. Run backups/organize-backups.bat to organize files.`, 'info', 8000);
-                    }
-                }, 1000);
+            // Check if we're running in desktop mode (Electron)
+            if (typeof DesktopBackupHelper !== 'undefined' && DesktopBackupHelper.isDesktopMode()) {
+                console.log('🖥️ Desktop mode: Saving backup directly to file system');
+                const filePath = await DesktopBackupHelper.saveBackupFile(fileName, data, type);
+                
+                // Show success notification
+                if (typeof showToast === 'function') {
+                    showToast(`✅ Backup saved: ${fileName}`, 'success', 5000);
+                }
+                
+                return filePath;
+            } else {
+                // Browser mode: Use download approach
+                console.log('🌐 Browser mode: Downloading backup file');
+                const dataStr = JSON.stringify(data, null, 2);
+                
+                // Create downloadable blob
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                
+                // Create temporary download link
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                link.style.display = 'none';
+                
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up blob URL
+                URL.revokeObjectURL(url);
+                
+                console.log(`File system backup created: ${fileName}`);
+                
+                // Track backup download and show reminder (browser only)
+                this.trackBackupDownload();
+                
+                // Show immediate organization reminder for manual/daily backups
+                if (type === 'manual' || type === 'daily') {
+                    setTimeout(() => {
+                        if (typeof showToast === 'function') {
+                            showToast(`📁 Backup downloaded as ${fileName}. Run backups/organize-backups.bat to organize files.`, 'info', 8000);
+                        }
+                    }, 1000);
+                }
+                
+                return fileName;
             }
-            
-            return fileName;
         } catch (error) {
             console.error('Error creating file system backup:', error);
             // Don't throw error - file system backup is optional
@@ -1754,9 +1770,18 @@ class InventoryDatabase {
             const data = JSON.parse(backupData);
             const timestamp = backupKey.replace(/^feetonfocus_(backup_|manual_)/, '');
             const type = backupKey.includes('manual_') ? 'manual' : 'auto';
+            const fileName = `feetonfocus_${type}_${timestamp}.json`;
             
-            const fileName = await this.createFileSystemBackup(data, timestamp, type);
-            return fileName;
+            // Check if we're running in desktop mode (Electron)
+            if (typeof DesktopBackupHelper !== 'undefined' && DesktopBackupHelper.isDesktopMode()) {
+                console.log('🖥️ Desktop mode: Using save dialog for export');
+                const filePath = await DesktopBackupHelper.exportBackupFile(fileName, data);
+                return filePath;
+            } else {
+                // Browser mode: Use existing download method
+                const result = await this.createFileSystemBackup(data, timestamp, type);
+                return result;
+            }
         } catch (error) {
             console.error('Error exporting localStorage backup to file:', error);
             throw error;

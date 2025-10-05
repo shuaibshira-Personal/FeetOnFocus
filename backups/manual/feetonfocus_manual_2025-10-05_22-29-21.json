@@ -1,0 +1,106 @@
+{
+  "exportDate": "2025-10-05T20:29:21.515Z",
+  "version": 5,
+  "items": [],
+  "suppliers": [
+    {
+      "name": "Temu",
+      "code": "temu",
+      "color": "#FF6B35",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.541Z",
+      "updatedAt": "2025-10-05T20:28:28.542Z",
+      "id": 1
+    },
+    {
+      "name": "Transpharm",
+      "code": "transpharm",
+      "color": "#17a2b8",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.542Z",
+      "updatedAt": "2025-10-05T20:28:28.542Z",
+      "id": 2
+    },
+    {
+      "name": "Medis",
+      "code": "medis",
+      "color": "#28a745",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.543Z",
+      "updatedAt": "2025-10-05T20:28:28.543Z",
+      "id": 3
+    },
+    {
+      "name": "Other",
+      "code": "other",
+      "color": "#6c757d",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.543Z",
+      "updatedAt": "2025-10-05T20:28:28.543Z",
+      "id": 4
+    }
+  ],
+  "categories": [
+    {
+      "name": "Orthotic Materials",
+      "code": "orthotic_materials",
+      "color": "#E91E63",
+      "description": "Materials for making orthotics",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.544Z",
+      "updatedAt": "2025-10-05T20:28:28.544Z",
+      "id": 1
+    },
+    {
+      "name": "Footwear",
+      "code": "footwear",
+      "color": "#9C27B0",
+      "description": "Therapeutic and orthopedic footwear",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.544Z",
+      "updatedAt": "2025-10-05T20:28:28.544Z",
+      "id": 2
+    },
+    {
+      "name": "Instruments",
+      "code": "instruments",
+      "color": "#3F51B5",
+      "description": "Medical instruments and tools",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.544Z",
+      "updatedAt": "2025-10-05T20:28:28.544Z",
+      "id": 3
+    },
+    {
+      "name": "Consumables",
+      "code": "consumables",
+      "color": "#4CAF50",
+      "description": "Disposable medical supplies",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.545Z",
+      "updatedAt": "2025-10-05T20:28:28.545Z",
+      "id": 4
+    },
+    {
+      "name": "Equipment",
+      "code": "equipment",
+      "color": "#FF9800",
+      "description": "Medical equipment and devices",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.545Z",
+      "updatedAt": "2025-10-05T20:28:28.545Z",
+      "id": 5
+    },
+    {
+      "name": "Other",
+      "code": "other",
+      "color": "#6c757d",
+      "description": "Miscellaneous items",
+      "isDefault": true,
+      "createdAt": "2025-10-05T20:28:28.545Z",
+      "updatedAt": "2025-10-05T20:28:28.545Z",
+      "id": 6
+    }
+  ],
+  "activity": []
+}
