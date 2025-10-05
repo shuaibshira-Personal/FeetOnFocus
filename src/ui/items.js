@@ -52,6 +52,36 @@ class ItemsManager {
         });
     }
 
+    // Global function to clean up any modal backdrop issues
+    cleanupAllModals() {
+        console.log('🧹 Emergency modal cleanup initiated');
+        
+        // Remove all modal backdrops
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach((backdrop, index) => {
+            backdrop.remove();
+            console.log(`🗑️ Removed backdrop ${index + 1}`);
+        });
+        
+        // Restore body state
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        
+        // Hide any visible modals
+        const modals = document.querySelectorAll('.modal.show');
+        modals.forEach((modal, index) => {
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modalInstance) {
+                modalInstance.hide();
+                console.log(`🔒 Closed modal ${index + 1}`);
+            }
+        });
+        
+        console.log('✅ Modal cleanup completed');
+        showToast('Modal cleanup completed', 'success');
+    }
+
     // Debug function to test buttons manually
     debugButtons() {
         console.log('=== BUTTON DEBUG INFO ===');
@@ -431,20 +461,6 @@ class ItemsManager {
         return nameMap[supplier] || supplier || 'Unknown';
     }
 
-    showAddItemModal() {
-        const modal = new bootstrap.Modal(document.getElementById('addItemModal'));
-        const form = document.getElementById('addItemForm');
-        
-        // Reset form
-        resetForm(form);
-        this.currentImageData = null;
-        
-        // Refresh supplier and category options before showing modal
-        this.loadSupplierOptions();
-        this.loadCategoryOptions();
-        
-        modal.show();
-    }
 
     async saveItem() {
         const form = document.getElementById('addItemForm');
@@ -494,6 +510,34 @@ class ItemsManager {
             
             // Refresh items list
             await this.loadItems();
+            
+            // Check current active tab and refresh appropriate view
+            // Look for both nav-link.active and dropdown-item.active
+            const activeNavTab = document.querySelector('.nav-link.active');
+            const activeDropdownTab = document.querySelector('.dropdown-item.active');
+            const activeTab = activeDropdownTab || activeNavTab;
+            
+            if (activeTab) {
+                const activeTabId = activeTab.id;
+                console.log(`🔄 Active tab: ${activeTabId}`);
+                
+                // Refresh the appropriate type-specific view based on current tab
+                if (activeTabId === 'resellingTab' && itemType === 'reselling') {
+                    console.log(`🔄 Refreshing reselling table after adding ${itemType} item`);
+                    await this.loadItemsByType('reselling');
+                } else if (activeTabId === 'consumablesTab' && itemType === 'consumable') {
+                    console.log(`🔄 Refreshing consumables table after adding ${itemType} item`);
+                    await this.loadItemsByType('consumable');
+                } else if (activeTabId === 'officeEquipmentTab' && itemType === 'office_equipment') {
+                    console.log(`🔄 Refreshing office equipment table after adding ${itemType} item`);
+                    await this.loadItemsByType('office_equipment');
+                } else if (activeTabId === 'allItemsTab') {
+                    console.log(`🔄 Refreshing all items table after adding ${itemType} item`);
+                    // All items table is already refreshed by loadItems() above
+                }
+            } else {
+                console.log(`⚠️ No active tab found, unable to refresh specific view`);
+            }
             
             // Update dashboard
             if (window.dashboard) {
@@ -611,8 +655,40 @@ class ItemsManager {
         }
 
         try {
+            // Get item info before deleting for refresh logic
+            const item = this.items.find(i => i.id === itemId);
+            const itemType = item ? item.itemType : null;
+            
             await inventoryDB.deleteItem(itemId);
             await this.loadItems();
+            
+            // Check current active tab and refresh appropriate view
+            // Look for both nav-link.active and dropdown-item.active
+            const activeNavTab = document.querySelector('.nav-link.active');
+            const activeDropdownTab = document.querySelector('.dropdown-item.active');
+            const activeTab = activeDropdownTab || activeNavTab;
+            
+            if (activeTab && itemType) {
+                const activeTabId = activeTab.id;
+                console.log(`🔄 Active tab after delete: ${activeTabId}`);
+                
+                // Refresh the appropriate type-specific view based on current tab
+                if (activeTabId === 'resellingTab' && itemType === 'reselling') {
+                    console.log(`🔄 Refreshing reselling table after deleting ${itemType} item`);
+                    await this.loadItemsByType('reselling');
+                } else if (activeTabId === 'consumablesTab' && itemType === 'consumable') {
+                    console.log(`🔄 Refreshing consumables table after deleting ${itemType} item`);
+                    await this.loadItemsByType('consumable');
+                } else if (activeTabId === 'officeEquipmentTab' && itemType === 'office_equipment') {
+                    console.log(`🔄 Refreshing office equipment table after deleting ${itemType} item`);
+                    await this.loadItemsByType('office_equipment');
+                } else if (activeTabId === 'allItemsTab') {
+                    console.log(`🔄 Refreshing all items table after deleting ${itemType} item`);
+                    // All items table is already refreshed by loadItems() above
+                }
+            } else {
+                console.log(`⚠️ No active tab found after delete, unable to refresh specific view`);
+            }
             
             // Update dashboard
             if (window.dashboard) {
@@ -644,8 +720,21 @@ class ItemsManager {
     }
 
     async showEditItemModal(item) {
-        const modal = new bootstrap.Modal(document.getElementById('editItemModal'));
+        const modalElement = document.getElementById('editItemModal');
         const form = document.getElementById('editItemForm');
+        
+        // Clean up any existing modal instances
+        const existingModal = bootstrap.Modal.getInstance(modalElement);
+        if (existingModal) {
+            existingModal.dispose();
+            console.log('🧹 Disposed existing edit modal instance');
+        }
+        
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
         
         // Reset form validation
         clearFormValidation(form);
@@ -686,6 +775,27 @@ class ItemsManager {
         
         // Load and populate dropdowns
         await this.populateEditDropdowns(item);
+        
+        // Add cleanup event listeners
+        const cleanupModal = () => {
+            console.log('🧹 Cleaning up edit modal and backdrop');
+            // Remove any lingering backdrops
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => {
+                backdrop.remove();
+                console.log('🗑️ Removed modal backdrop');
+            });
+            // Restore body classes
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        };
+        
+        // Clean up when modal is hidden
+        modalElement.addEventListener('hidden.bs.modal', cleanupModal, { once: true });
+        
+        // Also clean up on dispose
+        modalElement.addEventListener('disposed.bs.modal', cleanupModal, { once: true });
         
         modal.show();
     }
@@ -798,6 +908,34 @@ class ItemsManager {
             // Refresh items list
             await this.loadItems();
             
+            // Check current active tab and refresh appropriate view
+            // Look for both nav-link.active and dropdown-item.active
+            const activeNavTab = document.querySelector('.nav-link.active');
+            const activeDropdownTab = document.querySelector('.dropdown-item.active');
+            const activeTab = activeDropdownTab || activeNavTab;
+            
+            if (activeTab) {
+                const activeTabId = activeTab.id;
+                console.log(`🔄 Active tab after update: ${activeTabId}`);
+                
+                // Refresh the appropriate type-specific view based on current tab
+                if (activeTabId === 'resellingTab' && itemType === 'reselling') {
+                    console.log(`🔄 Refreshing reselling table after updating ${itemType} item`);
+                    await this.loadItemsByType('reselling');
+                } else if (activeTabId === 'consumablesTab' && itemType === 'consumable') {
+                    console.log(`🔄 Refreshing consumables table after updating ${itemType} item`);
+                    await this.loadItemsByType('consumable');
+                } else if (activeTabId === 'officeEquipmentTab' && itemType === 'office_equipment') {
+                    console.log(`🔄 Refreshing office equipment table after updating ${itemType} item`);
+                    await this.loadItemsByType('office_equipment');
+                } else if (activeTabId === 'allItemsTab') {
+                    console.log(`🔄 Refreshing all items table after updating ${itemType} item`);
+                    // All items table is already refreshed by loadItems() above
+                }
+            } else {
+                console.log(`⚠️ No active tab found after update, unable to refresh specific view`);
+            }
+            
             // Update dashboard
             if (window.dashboard) {
                 await dashboard.refreshStats();
@@ -817,46 +955,58 @@ class ItemsManager {
     }
 
     handleItemTypeChange(itemType, isEdit = false) {
+        console.log(`🔧 handleItemTypeChange called with itemType: ${itemType}, isEdit: ${isEdit}`);
+
         const prefix = isEdit ? 'edit' : '';
         const sellingPriceGroup = document.getElementById(`${prefix}SellingPriceGroup`);
         const purchaseDateGroup = document.getElementById(`${prefix}PurchaseDateGroup`);
         const quantityGroup = document.getElementById(`${prefix}QuantityGroup`);
         const lowStockThresholdGroup = document.getElementById(`${prefix}LowStockThresholdGroup`);
-        const sellingPriceInput = document.getElementById(`${prefix}ItemSellingPrice`);
-        const purchaseDateInput = document.getElementById(`${prefix}ItemPurchaseDate`);
-        
-        // Hide all conditional fields first
-        sellingPriceGroup.style.display = 'none';
-        purchaseDateGroup.style.display = 'none';
-        quantityGroup.style.display = 'none';
-        if (lowStockThresholdGroup) {
-            lowStockThresholdGroup.style.display = 'none';
-        }
-        
-        // Clear required attributes
-        sellingPriceInput.removeAttribute('required');
-        purchaseDateInput.removeAttribute('required');
+
+        // Inputs have different IDs for add vs edit forms
+        const sellingPriceInput = document.getElementById(isEdit ? 'editItemSellingPrice' : 'itemSellingPrice');
+        const purchaseDateInput = document.getElementById(isEdit ? 'editItemPurchaseDate' : 'itemPurchaseDate');
+
+        // Debug: Log which elements were found
+        console.log('🔍 Element search results:');
+        console.log(`  sellingPriceGroup (${prefix}SellingPriceGroup): ${sellingPriceGroup ? '✅' : '❌'}`);
+        console.log(`  purchaseDateGroup (${prefix}PurchaseDateGroup): ${purchaseDateGroup ? '✅' : '❌'}`);
+        console.log(`  quantityGroup (${prefix}QuantityGroup): ${quantityGroup ? '✅' : '❌'}`);
+        console.log(`  lowStockThresholdGroup (${prefix}LowStockThresholdGroup): ${lowStockThresholdGroup ? '✅' : '❌'}`);
+        console.log(`  sellingPriceInput (${isEdit ? 'editItemSellingPrice' : 'itemSellingPrice'}): ${sellingPriceInput ? '✅' : '❌'}`);
+        console.log(`  purchaseDateInput (${isEdit ? 'editItemPurchaseDate' : 'itemPurchaseDate'}): ${purchaseDateInput ? '✅' : '❌'}`);
+
+        // Hide all conditional fields first (with null checks)
+        if (sellingPriceGroup) sellingPriceGroup.style.display = 'none';
+        if (purchaseDateGroup) purchaseDateGroup.style.display = 'none';
+        if (quantityGroup) quantityGroup.style.display = 'none';
+        if (lowStockThresholdGroup) lowStockThresholdGroup.style.display = 'none';
+
+        // Clear required attributes (with null checks)
+        if (sellingPriceInput) sellingPriceInput.removeAttribute('required');
+        if (purchaseDateInput) purchaseDateInput.removeAttribute('required');
         
         switch (itemType) {
             case 'reselling':
-                sellingPriceGroup.style.display = 'block';
-                quantityGroup.style.display = 'block';
-                if (lowStockThresholdGroup) {
-                    lowStockThresholdGroup.style.display = 'block';
-                }
-                sellingPriceInput.setAttribute('required', 'required');
+                if (sellingPriceGroup) sellingPriceGroup.style.display = 'block';
+                if (quantityGroup) quantityGroup.style.display = 'block';
+                if (lowStockThresholdGroup) lowStockThresholdGroup.style.display = 'block';
+                if (sellingPriceInput) sellingPriceInput.setAttribute('required', 'required');
+                console.log('✅ Configured fields for reselling item');
                 break;
             case 'consumable':
-                quantityGroup.style.display = 'block';
-                if (lowStockThresholdGroup) {
-                    lowStockThresholdGroup.style.display = 'block';
-                }
+                if (quantityGroup) quantityGroup.style.display = 'block';
+                if (lowStockThresholdGroup) lowStockThresholdGroup.style.display = 'block';
+                console.log('✅ Configured fields for consumable item');
                 break;
             case 'office_equipment':
-                purchaseDateGroup.style.display = 'block';
-                purchaseDateInput.setAttribute('required', 'required');
+                if (purchaseDateGroup) purchaseDateGroup.style.display = 'block';
+                if (purchaseDateInput) purchaseDateInput.setAttribute('required', 'required');
+                console.log('✅ Configured fields for office equipment');
                 // Office equipment doesn't use quantity tracking or low stock alerts
                 break;
+            default:
+                console.log(`⚠️ Unknown item type: ${itemType}`);
         }
     }
 
@@ -1271,44 +1421,119 @@ class ItemsManager {
     }
     
     showAddItemModal(itemType = null) {
-        const modal = new bootstrap.Modal(document.getElementById('addItemModal'));
+        console.log('🚀 showAddItemModal called with itemType:', itemType);
+        
+        const modalElement = document.getElementById('addItemModal');
         const form = document.getElementById('addItemForm');
+        
+        if (!modalElement) {
+            console.error('❌ addItemModal element not found!');
+            showToast('Modal not found. Please refresh the page.', 'error');
+            return;
+        }
+        
+        if (!form) {
+            console.error('❌ addItemForm element not found!');
+            showToast('Form not found. Please refresh the page.', 'error');
+            return;
+        }
+        
+        console.log('✅ Modal and form elements found');
+        
+        // Clean up any existing modal instances
+        const existingModal = bootstrap.Modal.getInstance(modalElement);
+        if (existingModal) {
+            existingModal.dispose();
+            console.log('🧹 Disposed existing modal instance');
+        }
+        
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
         
         // Reset form
         resetForm(form);
         this.currentImageData = null;
+        console.log('✅ Form reset completed');
         
         // Pre-select item type if specified
         if (itemType) {
-            document.getElementById('itemType').value = itemType;
-            this.handleItemTypeChange(itemType, false);
+            const itemTypeElement = document.getElementById('itemType');
+            if (itemTypeElement) {
+                itemTypeElement.value = itemType;
+                console.log('✅ Item type pre-selected:', itemType);
+                this.handleItemTypeChange(itemType, false);
+            } else {
+                console.error('❌ itemType select element not found!');
+            }
         }
+        
+        // Add cleanup event listeners
+        const cleanupModal = () => {
+            console.log('🧹 Cleaning up modal and backdrop');
+            // Remove any lingering backdrops
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => {
+                backdrop.remove();
+                console.log('🗑️ Removed modal backdrop');
+            });
+            // Restore body classes
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        };
+        
+        // Clean up when modal is hidden
+        modalElement.addEventListener('hidden.bs.modal', cleanupModal, { once: true });
+        
+        // Also clean up on dispose
+        modalElement.addEventListener('disposed.bs.modal', cleanupModal, { once: true });
         
         // Refresh supplier and category options before showing modal
         this.loadSupplierOptions();
         this.loadCategoryOptions();
+        console.log('✅ Loading supplier and category options');
         
         modal.show();
+        console.log('✅ Modal shown successfully');
     }
     
     async renderTypeSpecificRow(item, itemType) {
+        // Add debugging for null/undefined items
+        if (!item || item === null || item === undefined) {
+            console.error('❌ renderTypeSpecificRow: item is null or undefined:', item);
+            return '<tr><td colspan="9" class="text-danger text-center">Error: Invalid item data</td></tr>';
+        }
+        
+        if (!item.id) {
+            console.error('❌ renderTypeSpecificRow: item missing ID:', item);
+            return '<tr><td colspan="9" class="text-danger text-center">Error: Item missing ID</td></tr>';
+        }
+        
+        console.log(`📝 Rendering ${itemType} item:`, item.name || '[NO NAME]', 'ID:', item.id);
+        
         const imageHtml = item.imageData ? 
-            `<img src="${item.imageData}" alt="${item.name}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">` :
+            `<img src="${item.imageData}" alt="${item.name || 'Item'}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">` :
             `<div class="bg-light text-center" style="width: 50px; height: 50px; line-height: 50px; font-size: 12px;">No Image</div>`;
 
         const supplierColor = await this.getSupplierBadgeColor(item.supplier);
         const supplierName = await this.getSupplierDisplayName(item.supplier);
         const costPrice = item.costPrice || item.price || 0;
         
+        const itemName = item.name || '[Unnamed Item]';
+        const listingName = item.listingName || '';
+        
         const baseColumns = `
             <td>${imageHtml}</td>
             <td>
                 <div class="fw-bold">
                     <a href="#" class="item-name-link text-decoration-none" data-item-id="${item.id}">
-                        ${item.name || ''}
+                        ${itemName}
                     </a>
                 </div>
-                <small class="text-muted">${item.listingName || ''}</small>
+                <small class="text-muted">${listingName}</small>
             </td>
             <td>${item.sku || ''}</td>
             <td>${item.category || ''}</td>
@@ -1388,3 +1613,37 @@ class ItemsManager {
 
 // Create global items manager instance
 const itemsManager = new ItemsManager();
+
+// Debug helper - make available in global scope for console testing
+window.testAddButtons = function() {
+    console.log('=== TESTING ADD BUTTONS ===');
+    
+    const buttons = [
+        { id: 'addResellingItemBtn', type: 'reselling' },
+        { id: 'addConsumableBtn', type: 'consumable' },
+        { id: 'addOfficeEquipmentBtn', type: 'office_equipment' }
+    ];
+    
+    buttons.forEach(({ id, type }) => {
+        const element = document.getElementById(id);
+        console.log(`${id}: ${element ? '✅ Found' : '❌ Not Found'}`);
+        if (element) {
+            console.log(`  - Testing click for ${type}...`);
+            try {
+                itemsManager.showAddItemModal(type);
+                console.log(`  ✅ Successfully called showAddItemModal for ${type}`);
+            } catch (error) {
+                console.error(`  ❌ Error calling showAddItemModal for ${type}:`, error);
+            }
+        }
+    });
+    
+    console.log('=== END BUTTON TEST ===');
+};
+
+// Also make itemsManager available globally for debugging
+window.itemsManager = itemsManager;
+window.debugButtons = () => itemsManager.debugButtons();
+
+// Make cleanup function available globally for emergency use
+window.cleanupModals = () => itemsManager.cleanupAllModals();

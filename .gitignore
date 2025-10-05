@@ -10,6 +10,9 @@ dist/
 # Electron app specific
 *.exe
 
+# Windows shortcuts
+*.lnk
+
 # IDE / Editor files
 .vscode/
 .idea/

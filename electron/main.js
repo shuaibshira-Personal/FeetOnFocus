@@ -28,9 +28,19 @@ function createWindow() {
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
         
-        // Open DevTools in development
-        if (process.argv.includes('--dev')) {
-            mainWindow.webContents.openDevTools();
+        // Enable DevTools for debugging (you can disable this later)
+        // mainWindow.webContents.openDevTools(); // Uncomment to auto-open DevTools
+    });
+    
+    // Enable keyboard shortcuts for DevTools (Ctrl+Shift+I, F12)
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        // F12 key
+        if (input.key === 'F12') {
+            mainWindow.webContents.toggleDevTools();
+        }
+        // Ctrl+Shift+I
+        if (input.control && input.shift && input.key === 'I') {
+            mainWindow.webContents.toggleDevTools();
         }
     });
 
