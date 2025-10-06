@@ -624,19 +624,11 @@ class BulkImportManager {
 
     async showPreview() {
         const container = document.getElementById('previewContainer');
-        const itemType = document.getElementById('itemType').value;
+        const defaultItemType = document.getElementById('itemType').value || 'reselling'; // Default to reselling
         
-        if (!itemType) {
-            showToast('Please select a default item type', 'warning');
-            this.currentStep--; // Go back
-            this.updateStepDisplay();
-            this.showCurrentStep();
-            return;
-        }
-
-        // Process the data with field mappings
+        // Process the data with field mappings and smart type detection
         const previewData = this.parsedData.slice(0, 10).map(row => {
-            const mappedRow = { itemType };
+            const mappedRow = {};
             
             Object.entries(this.fieldMappings).forEach(([field, column]) => {
                 let value = row[column] || '';
@@ -648,6 +640,9 @@ class BulkImportManager {
                 
                 mappedRow[field] = value;
             });
+            
+            // Smart item type detection based on category
+            mappedRow.itemType = this.detectItemType(mappedRow.category, defaultItemType);
             
             return mappedRow;
         });
@@ -699,12 +694,65 @@ class BulkImportManager {
 
         container.innerHTML = tableHtml;
         document.getElementById('previewCount').textContent = this.parsedData.length;
+        
+        // Show detection summary
+        const detectedTypes = {};
+        previewData.forEach(item => {
+            detectedTypes[item.itemType] = (detectedTypes[item.itemType] || 0) + 1;
+        });
+        
+        const typesSummary = Object.entries(detectedTypes)
+            .map(([type, count]) => `${count} ${this.getItemTypeLabel(type)}`)
+            .join(', ');
+        
+        console.log('Smart type detection summary (first 10 items):', detectedTypes);
     }
 
+    detectItemType(category, defaultType = 'reselling') {
+        if (!category || typeof category !== 'string') {
+            return defaultType;
+        }
+        
+        const categoryLower = category.toLowerCase().trim();
+        
+        // Keywords that indicate consumables
+        const consumableKeywords = [
+            'consumable', 'consumables', 'supplies', 'office supplies', 'medical supplies',
+            'cleaning', 'sanitizer', 'paper', 'ink', 'toner', 'cartridge', 'refill',
+            'disposable', 'single use', 'medical', 'health', 'hygiene', 'maintenance',
+            'stationery', 'pen', 'pencil', 'marker', 'glue', 'tape', 'staple'
+        ];
+        
+        // Keywords that indicate office equipment  
+        const officeEquipmentKeywords = [
+            'office equipment', 'equipment', 'furniture', 'desk', 'chair', 'table',
+            'computer', 'laptop', 'monitor', 'printer', 'scanner', 'phone', 'telephone',
+            'projector', 'whiteboard', 'cabinet', 'shelf', 'filing', 'safe',
+            'air conditioner', 'heater', 'fan', 'lamp', 'lighting', 'machine'
+        ];
+        
+        // Check for consumable matches
+        for (const keyword of consumableKeywords) {
+            if (categoryLower.includes(keyword)) {
+                return 'consumable';
+            }
+        }
+        
+        // Check for office equipment matches
+        for (const keyword of officeEquipmentKeywords) {
+            if (categoryLower.includes(keyword)) {
+                return 'office_equipment';
+            }
+        }
+        
+        // Default to reselling or provided default
+        return defaultType;
+    }
+    
     getItemTypeLabel(itemType) {
         const labels = {
             'reselling': 'Reselling',
-            'consumables': 'Consumables',
+            'consumable': 'Consumables', // Fixed: was 'consumables' but should be 'consumable'
             'office_equipment': 'Office Equipment'
         };
         return labels[itemType] || itemType;
@@ -893,13 +941,9 @@ class BulkImportManager {
                 throw new Error('Item type selection not found');
             }
             
-            const itemType = itemTypeElement.value;
+            const defaultItemType = itemTypeElement.value || 'reselling'; // Default to reselling if none selected
             const updateExisting = updateExistingElement ? updateExistingElement.checked : false;
             const profileName = profileNameElement ? profileNameElement.value.trim() : '';
-
-            if (!itemType) {
-                throw new Error('Please select an item type');
-            }
 
             // Show progress UI instead of loading
             this.showProgressUI('importStep3', this.parsedData.length);
@@ -913,7 +957,7 @@ class BulkImportManager {
             for (let i = 0; i < this.parsedData.length; i++) {
                 const row = this.parsedData[i];
                 try {
-                    const itemData = { itemType };
+                    const itemData = {};
                     
                     // Map fields
                     Object.entries(this.fieldMappings).forEach(([field, column]) => {
@@ -928,6 +972,9 @@ class BulkImportManager {
                             itemData[field] = value;
                         }
                     });
+                    
+                    // Smart item type detection based on category
+                    itemData.itemType = this.detectItemType(itemData.category, defaultItemType);
 
                     // Skip rows without names
                     if (!itemData.name || itemData.name.trim() === '') {

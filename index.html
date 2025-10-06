@@ -1588,13 +1588,14 @@
                                     <div class="form-text">Save this mapping as a reusable profile</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="itemType" class="form-label">Default Item Type *</label>
-                                    <select class="form-select" id="itemType" required>
-                                        <option value="">Select item type for imported items</option>
-                                        <option value="reselling">Reselling Items</option>
-                                        <option value="consumables">Consumables</option>
-                                        <option value="office_equipment">Office Equipment</option>
+                                    <label for="itemType" class="form-label">Default Item Type</label>
+                                    <select class="form-select" id="itemType">
+                                        <option value="">Auto-detect from category (recommended)</option>
+                                        <option value="reselling">Force all as Reselling Items</option>
+                                        <option value="consumable">Force all as Consumables</option>
+                                        <option value="office_equipment">Force all as Office Equipment</option>
                                     </select>
+                                    <div class="form-text">System will automatically detect item types based on category names, or you can force all items to a specific type</div>
                                 </div>
                             </div>
                         </div>

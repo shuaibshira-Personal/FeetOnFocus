@@ -1,6 +1,7 @@
 Name,Code,Supplier,Balance,Unit Cost,Category,Description
-Test Item 1,TI001,Test Supplier,10,5.99,Electronics,A sample test item for bulk import
-Test Item 2,TI002,Test Supplier,25,12.50,Office Supplies,Another test item with different category
-Test Item 3,TI003,Alternative Supplier,5,8.75,Electronics,Third test item with low stock
-Test Item 4,TI004,Test Supplier,0,15.25,Consumables,Out of stock item for testing
-Test Item 5,TI005,Premium Supplier,50,3.99,Office Supplies,High quantity test item
+iPhone Cases,IP001,Phone Supplier,25,8.50,Electronics,Protective cases for smartphones - will be detected as RESELLING
+Printer Paper,PP001,Office Depot,100,2.99,Office Supplies,A4 white paper 80gsm - will be detected as CONSUMABLES
+Office Desk,OD001,Furniture Co,1,250.00,Furniture,Wooden office desk 120x80cm - will be detected as OFFICE EQUIPMENT
+Pen Set,PS001,Stationery Plus,50,1.25,Stationery,Blue ballpoint pens pack - will be detected as CONSUMABLES
+Laptop Stand,LS001,Tech Supplies,15,45.99,Equipment,Adjustable laptop stand aluminum - will be detected as OFFICE EQUIPMENT
+T-Shirts,TS001,Clothing Co,30,12.00,Clothing,Cotton t-shirts various sizes - will be detected as RESELLING
