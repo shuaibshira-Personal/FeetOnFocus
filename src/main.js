@@ -16,26 +16,46 @@ class FeetOnFocusApp {
             this.showAppLoading();
             console.log('Loading screen displayed');
             
-            // Check if required modules are available
-            const requiredModules = {
-                inventoryDB,
-                dashboard,
-                itemsManager,
-                suppliersManager,
-                categoriesManager,
-                dataManager,
-                reportsManager,
-                purchaseManager,
-                stockManager,
-                bulkImportManager
-            };
+            // Give a small delay to ensure all script tags have been processed
+            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('Scripts should be loaded...');
             
+            // Check if required modules are available
             console.log('Checking required modules...');
-            for (const [name, module] of Object.entries(requiredModules)) {
-                if (!module) {
-                    throw new Error(`Required module '${name}' is not available`);
+            
+            const moduleChecks = [
+                { name: 'inventoryDB', check: () => typeof inventoryDB !== 'undefined' },
+                { name: 'dashboard', check: () => typeof dashboard !== 'undefined' },
+                { name: 'itemsManager', check: () => typeof itemsManager !== 'undefined' },
+                { name: 'suppliersManager', check: () => typeof suppliersManager !== 'undefined' },
+                { name: 'categoriesManager', check: () => typeof categoriesManager !== 'undefined' },
+                { name: 'dataManager', check: () => typeof dataManager !== 'undefined' },
+                { name: 'reportsManager', check: () => typeof reportsManager !== 'undefined' },
+                { name: 'purchaseManager', check: () => typeof purchaseManager !== 'undefined' },
+                { name: 'stockManager', check: () => typeof stockManager !== 'undefined' },
+                { name: 'bulkImportManager', check: () => typeof bulkImportManager !== 'undefined' }
+            ];
+            
+            const missingModules = [];
+            const availableModules = [];
+            
+            for (const { name, check } of moduleChecks) {
+                try {
+                    if (check()) {
+                        availableModules.push(name);
+                        console.log(`✓ Module '${name}' is available`);
+                    } else {
+                        missingModules.push(name);
+                        console.error(`✗ Module '${name}' is not available`);
+                    }
+                } catch (error) {
+                    missingModules.push(name);
+                    console.error(`✗ Module '${name}' check failed:`, error.message);
                 }
-                console.log(`✓ Module '${name}' is available`);
+            }
+            
+            if (missingModules.length > 0) {
+                throw new Error(`Missing required modules: ${missingModules.join(', ')}. Available: ${availableModules.join(', ')}`);
             }
             
             // Initialize database
@@ -55,41 +75,23 @@ class FeetOnFocusApp {
             // Initialize UI modules
             console.log('Initializing UI modules...');
             
-            console.log('Initializing dashboard...');
-            await dashboard.init();
-            console.log('✓ Dashboard initialized');
+            const managers = {
+                dashboard,
+                itemsManager,
+                suppliersManager,
+                categoriesManager,
+                dataManager,
+                reportsManager,
+                purchaseManager,
+                stockManager,
+                bulkImportManager
+            };
             
-            console.log('Initializing items manager...');
-            await itemsManager.init();
-            console.log('✓ Items manager initialized');
-            
-            console.log('Initializing suppliers manager...');
-            await suppliersManager.init();
-            console.log('✓ Suppliers manager initialized');
-            
-            console.log('Initializing categories manager...');
-            await categoriesManager.init();
-            console.log('✓ Categories manager initialized');
-            
-            console.log('Initializing data manager...');
-            await dataManager.init();
-            console.log('✓ Data manager initialized');
-            
-            console.log('Initializing reports manager...');
-            await reportsManager.init();
-            console.log('✓ Reports manager initialized');
-            
-            console.log('Initializing purchase manager...');
-            await purchaseManager.init();
-            console.log('✓ Purchase manager initialized');
-            
-            console.log('Initializing stock manager...');
-            await stockManager.init();
-            console.log('✓ Stock manager initialized');
-            
-            console.log('Initializing bulk import manager...');
-            await bulkImportManager.init();
-            console.log('✓ Bulk import manager initialized');
+            for (const [name, manager] of Object.entries(managers)) {
+                console.log(`Initializing ${name}...`);
+                await manager.init();
+                console.log(`✓ ${name} initialized`);
+            }
             
             // Setup navigation
             console.log('Setting up navigation...');

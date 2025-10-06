@@ -167,12 +167,21 @@ class InventoryDatabase {
             const itemsStore = transaction.objectStore('items');
             const activityStore = transaction.objectStore('activity');
             
+            // Debug: Log what data is being stored
+            console.log('💾 Debug database.addItem - itemData received:');
+            console.log(itemData);
+            console.log('  name type:', typeof itemData.name);
+            console.log('  name value:', itemData.name);
+            
             // Prepare item data with timestamp
             const item = {
                 ...itemData,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
+            
+            console.log('💾 Debug database.addItem - final item to store:');
+            console.log(item);
             
             const addRequest = itemsStore.add(item);
             
@@ -1134,6 +1143,12 @@ class InventoryDatabase {
      */
     async getSupplierByCode(code) {
         return new Promise((resolve, reject) => {
+            // Handle null/undefined/empty codes
+            if (!code || code === null || code === undefined || code === '') {
+                resolve(null);
+                return;
+            }
+            
             const transaction = this.db.transaction(['suppliers'], 'readonly');
             const store = transaction.objectStore('suppliers');
             const index = store.index('code');
@@ -1330,6 +1345,11 @@ class InventoryDatabase {
      * @param {string} code - Category code
      */
     async getCategoryByCode(code) {
+        // Validate code parameter to prevent IndexedDB errors
+        if (code === null || code === undefined || code === '') {
+            return null;
+        }
+        
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction(['categories'], 'readonly');
             const store = transaction.objectStore('categories');

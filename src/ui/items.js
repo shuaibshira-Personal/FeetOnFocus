@@ -43,9 +43,9 @@ class ItemsManager {
             const element = document.getElementById(id);
             if (element && !element.hasEventListener) {
                 console.log(`⚙️ Re-attaching event listener for ${id}`);
-                element.addEventListener('click', () => {
+                element.addEventListener('click', async () => {
                     console.log(`${id} clicked - showing modal for ${type}`);
-                    this.showAddItemModal(type);
+                    await this.showAddItemModal(type);
                 });
                 element.hasEventListener = true; // Mark to avoid duplicate listeners
             }
@@ -134,9 +134,9 @@ class ItemsManager {
         };
 
         // Add item button (in all items view)
-        safeAddEventListener('addItemBtn', 'click', () => {
+        safeAddEventListener('addItemBtn', 'click', async () => {
             console.log('Add item button clicked');
-            this.showAddItemModal();
+            await this.showAddItemModal();
         }, false);
 
         // Save item button
@@ -160,19 +160,19 @@ class ItemsManager {
         });
 
         // Type-specific add item buttons
-        safeAddEventListener('addResellingItemBtn', 'click', () => {
+        safeAddEventListener('addResellingItemBtn', 'click', async () => {
             console.log('Add reselling item button clicked');
-            this.showAddItemModal('reselling');
+            await this.showAddItemModal('reselling');
         });
         
-        safeAddEventListener('addConsumableBtn', 'click', () => {
+        safeAddEventListener('addConsumableBtn', 'click', async () => {
             console.log('Add consumable button clicked');
-            this.showAddItemModal('consumable');
+            await this.showAddItemModal('consumable');
         });
         
-        safeAddEventListener('addOfficeEquipmentBtn', 'click', () => {
+        safeAddEventListener('addOfficeEquipmentBtn', 'click', async () => {
             console.log('Add office equipment button clicked');
-            this.showAddItemModal('office_equipment');
+            await this.showAddItemModal('office_equipment');
         });
 
         // Type-specific search handlers
@@ -281,10 +281,18 @@ class ItemsManager {
             </div>
         `;
 
-        // Render rows asynchronously
+        // Render rows asynchronously with validation
         const tbody = document.getElementById('itemsTableBody');
+        const validItems = this.filteredItems.filter(item => 
+            item && item.id && (item.name || item.sku)
+        );
+        
+        if (validItems.length !== this.filteredItems.length) {
+            console.warn(`⚠️ Filtered out ${this.filteredItems.length - validItems.length} invalid items from rendering`);
+        }
+        
         const rows = await Promise.all(
-            this.filteredItems.map(item => this.renderItemRow(item))
+            validItems.map(item => this.renderItemRow(item))
         );
         
         tbody.innerHTML = rows.join('');
@@ -293,7 +301,7 @@ class ItemsManager {
     async renderItemRow(item) {
         const imageHtml = item.imageData ? 
             `<img src="${item.imageData}" alt="${item.name}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">` :
-            `<div class="bg-light text-center" style="width: 50px; height: 50px; line-height: 50px; font-size: 12px;">No Image</div>`;
+            `<div class="bg-light text-center d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 10px; white-space: nowrap; overflow: hidden;">No Image</div>`;
 
         const supplierColor = await this.getSupplierBadgeColor(item.supplier);
         const supplierName = await this.getSupplierDisplayName(item.supplier);
@@ -473,8 +481,17 @@ class ItemsManager {
         try {
             const itemType = document.getElementById('itemType').value;
             
+            // Debug: Log form field values
+            const itemNameField = document.getElementById('itemName');
+            const itemName = itemNameField ? itemNameField.value.trim() : '';
+            console.log('📝 Debug saveItem - Form field values:');
+            console.log('  itemName element:', itemNameField);
+            console.log('  itemName raw value:', itemNameField ? itemNameField.value : 'ELEMENT NOT FOUND');
+            console.log('  itemName trimmed:', itemName);
+            console.log('  itemType:', itemType);
+            
             const itemData = {
-                name: document.getElementById('itemName').value.trim(),
+                name: itemName,
                 sku: document.getElementById('itemSKU').value.trim() || null,
                 itemType: itemType,
                 category: document.getElementById('itemCategory').value || null,
@@ -488,6 +505,9 @@ class ItemsManager {
                 alternativeNames: parseAlternativeNames(document.getElementById('itemAltNames').value),
                 imageData: this.currentImageData ? this.currentImageData.data : null
             };
+            
+            console.log('📝 Debug saveItem - Final itemData object:');
+            console.log(itemData);
             
             // Add type-specific fields
             if (itemType === 'reselling') {
@@ -1290,10 +1310,14 @@ class ItemsManager {
         // Render type-specific table structure
         container.innerHTML = this.getTypeSpecificTableHTML(itemType);
 
-        // Render rows asynchronously
+        // Render rows asynchronously with validation
         const tbody = document.getElementById(`${tableId}Body`);
+        const validItems = this.filteredItems.filter(item => item && item.id && (item.name || item.sku));
+        if (validItems.length !== this.filteredItems.length) {
+            console.warn(`⚠️ Filtered out ${this.filteredItems.length - validItems.length} invalid ${itemType} items from rendering`);
+        }
         const rows = await Promise.all(
-            this.filteredItems.map(item => this.renderTypeSpecificRow(item, itemType))
+            validItems.map(item => this.renderTypeSpecificRow(item, itemType))
         );
         
         tbody.innerHTML = rows.join('');
@@ -1420,7 +1444,7 @@ class ItemsManager {
         }
     }
     
-    showAddItemModal(itemType = null) {
+    async showAddItemModal(itemType = null) {
         console.log('🚀 showAddItemModal called with itemType:', itemType);
         
         const modalElement = document.getElementById('addItemModal');
@@ -1440,18 +1464,36 @@ class ItemsManager {
         
         console.log('✅ Modal and form elements found');
         
-        // Clean up any existing modal instances
+        // Clean up any existing modal instances and backdrops
         const existingModal = bootstrap.Modal.getInstance(modalElement);
         if (existingModal) {
-            existingModal.dispose();
-            console.log('🧹 Disposed existing modal instance');
+            try {
+                existingModal.dispose();
+                console.log('🧹 Disposed existing modal instance');
+            } catch (error) {
+                console.warn('Warning disposing modal:', error);
+            }
         }
+        
+        // Remove any lingering backdrops before creating new modal
+        const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+        existingBackdrops.forEach(backdrop => backdrop.remove());
+        
+        // Reset body state
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        
+        // Wait a moment before creating new modal to ensure cleanup is complete
+        await new Promise(resolve => setTimeout(resolve, 50));
         
         const modal = new bootstrap.Modal(modalElement, {
             backdrop: true,
             keyboard: true,
             focus: true
         });
+        
+        console.log('✅ New modal instance created');
         
         // Reset form
         resetForm(form);
@@ -1496,8 +1538,17 @@ class ItemsManager {
         this.loadCategoryOptions();
         console.log('✅ Loading supplier and category options');
         
-        modal.show();
-        console.log('✅ Modal shown successfully');
+        // Add error handling for modal show
+        try {
+            modal.show();
+            console.log('✅ Modal shown successfully');
+        } catch (modalError) {
+            console.error('❌ Error showing modal:', modalError);
+            showToast('Error opening form. Please try again.', 'error');
+            
+            // Try to clean up on error
+            cleanupModal();
+        }
     }
     
     async renderTypeSpecificRow(item, itemType) {
@@ -1516,7 +1567,7 @@ class ItemsManager {
         
         const imageHtml = item.imageData ? 
             `<img src="${item.imageData}" alt="${item.name || 'Item'}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">` :
-            `<div class="bg-light text-center" style="width: 50px; height: 50px; line-height: 50px; font-size: 12px;">No Image</div>`;
+            `<div class="bg-light text-center d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 10px; white-space: nowrap; overflow: hidden;">No Image</div>`;
 
         const supplierColor = await this.getSupplierBadgeColor(item.supplier);
         const supplierName = await this.getSupplierDisplayName(item.supplier);
@@ -1615,7 +1666,7 @@ class ItemsManager {
 const itemsManager = new ItemsManager();
 
 // Debug helper - make available in global scope for console testing
-window.testAddButtons = function() {
+window.testAddButtons = async function() {
     console.log('=== TESTING ADD BUTTONS ===');
     
     const buttons = [
@@ -1624,19 +1675,19 @@ window.testAddButtons = function() {
         { id: 'addOfficeEquipmentBtn', type: 'office_equipment' }
     ];
     
-    buttons.forEach(({ id, type }) => {
+    for (const { id, type } of buttons) {
         const element = document.getElementById(id);
         console.log(`${id}: ${element ? '✅ Found' : '❌ Not Found'}`);
         if (element) {
             console.log(`  - Testing click for ${type}...`);
             try {
-                itemsManager.showAddItemModal(type);
+                await itemsManager.showAddItemModal(type);
                 console.log(`  ✅ Successfully called showAddItemModal for ${type}`);
             } catch (error) {
                 console.error(`  ❌ Error calling showAddItemModal for ${type}:`, error);
             }
         }
-    });
+    }
     
     console.log('=== END BUTTON TEST ===');
 };
@@ -1647,3 +1698,81 @@ window.debugButtons = () => itemsManager.debugButtons();
 
 // Make cleanup function available globally for emergency use
 window.cleanupModals = () => itemsManager.cleanupAllModals();
+
+// Debug functions to examine database contents
+window.debugItemsInDatabase = async function() {
+    console.log('🔍 === DEBUGGING ITEMS IN DATABASE ===');
+    
+    try {
+        // Get all items from the database
+        const items = await inventoryDB.getAllItems();
+        console.log(`📊 Total items in database: ${items.length}`);
+        
+        // Check each item
+        items.forEach((item, index) => {
+            console.log(`\n--- Item ${index + 1} ---`);
+            console.log('ID:', item.id);
+            console.log('Name:', item.name, typeof item.name);
+            console.log('Type:', item.itemType);
+            console.log('SKU:', item.sku);
+            console.log('Category:', item.category);
+            console.log('Supplier:', item.supplier);
+            console.log('Created:', item.createdAt);
+            console.log('Raw object:', item);
+            
+            // Check for null/undefined values
+            if (item.name === null) {
+                console.log('❌ NAME IS NULL!');
+            }
+            if (item.name === undefined) {
+                console.log('❌ NAME IS UNDEFINED!');
+            }
+            if (item.name === 'null') {
+                console.log('❌ NAME IS STRING "null"!');
+            }
+            if (!item.name || item.name === '') {
+                console.log('❌ NAME IS EMPTY OR FALSY!');
+            }
+        });
+        
+        // Check for items without names
+        const itemsWithoutNames = items.filter(item => !item.name || item.name === null || item.name === 'null');
+        if (itemsWithoutNames.length > 0) {
+            console.log(`\n⚠️ Found ${itemsWithoutNames.length} items without proper names:`);
+            itemsWithoutNames.forEach(item => {
+                console.log('Bad item:', item);
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Error debugging items:', error);
+    }
+    
+    console.log('🔍 === DEBUG COMPLETE ===');
+};
+
+window.cleanupBadItems = async function() {
+    console.log('🧹 === CLEANING UP BAD ITEMS ===');
+    
+    try {
+        const items = await inventoryDB.getAllItems();
+        const badItems = items.filter(item => !item.name || item.name === null || item.name === 'null' || item.name === '');
+        
+        console.log(`Found ${badItems.length} bad items to clean up`);
+        
+        for (const badItem of badItems) {
+            console.log('Deleting bad item:', badItem);
+            await inventoryDB.deleteItem(badItem.id);
+        }
+        
+        console.log('✅ Cleanup complete');
+        
+        // Reload the items view
+        if (itemsManager) {
+            await itemsManager.loadItems();
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cleaning up items:', error);
+    }
+};
