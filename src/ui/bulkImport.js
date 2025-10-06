@@ -84,20 +84,23 @@ class BulkImportManager {
             console.log('Bulk import modal shown - resetting wizard');
             // Small delay to ensure DOM is fully ready
             setTimeout(() => {
+                this.debugFileInput('before-reset-wizard');
                 this.resetImportWizard();
+                this.setupFileInputEventListeners(); // Set up file input events after modal is shown
+                this.debugFileInput('after-reset-wizard');
             }, 100);
         });
         
         // Modal hidden event - ensure clean state when modal is closed
         safeAddEventListener('bulkImportModal', 'hidden.bs.modal', () => {
             console.log('Bulk import modal hidden - clearing state');
+            this.debugFileInput('before-clear-state');
             this.clearImportState();
+            this.debugFileInput('after-clear-state');
         });
 
-        // File input change
-        safeAddEventListener('importFile', 'change', (e) => {
-            this.handleFileSelection(e);
-        });
+        // Note: File input event listeners will be set up when modal is shown
+        // to ensure DOM elements are accessible
 
         // Profile selection change
         safeAddEventListener('importProfile', 'change', (e) => {
@@ -146,6 +149,41 @@ class BulkImportManager {
         }, false);
         
         console.log('Bulk import event listeners setup complete');
+    }
+    
+    setupFileInputEventListeners() {
+        console.log('Setting up file input event listeners...');
+        
+        const fileInput = document.getElementById('importFile');
+        if (!fileInput) {
+            console.error('File input element not found during setup');
+            return;
+        }
+        
+        // Remove existing listeners to avoid duplicates
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+        
+        // File input change event
+        newFileInput.addEventListener('change', (e) => {
+            this.handleFileSelection(e);
+        });
+        
+        // File input click event - clear value to allow reselection
+        newFileInput.addEventListener('click', (e) => {
+            console.log('=== FILE INPUT CLICKED ===');
+            console.log('Current value before reset:', e.target.value);
+            console.log('Input element exists:', !!e.target);
+            console.log('Input element type:', e.target.type);
+            // Reset the input value before showing dialog to allow same file selection
+            e.target.value = '';
+            console.log('Value after reset:', e.target.value);
+            console.log('File input clicked - value cleared for reselection');
+            // Also call our debug function for comprehensive info
+            this.debugFileInput('file-input-clicked');
+        });
+        
+        console.log('File input event listeners set up successfully');
     }
     
     setupConflictResolutionListeners() {
@@ -228,7 +266,19 @@ class BulkImportManager {
             }
         });
         
-        if (elements.importFile) elements.importFile.value = '';
+        if (elements.importFile) {
+            console.log('=== RESETTING FILE INPUT IN WIZARD ===');
+            console.log('File input current value before reset:', elements.importFile.value);
+            console.log('File input current type before reset:', elements.importFile.type);
+            elements.importFile.value = '';
+            elements.importFile.type = 'text';
+            elements.importFile.type = 'file';
+            console.log('File input value after reset:', elements.importFile.value);
+            console.log('File input type after reset:', elements.importFile.type);
+            console.log('File input cleared in resetImportWizard');
+        } else {
+            console.warn('File input element not found during resetImportWizard');
+        }
         if (elements.importProfile) elements.importProfile.value = '';
         if (elements.profileName) elements.profileName.value = '';
         if (elements.itemType) elements.itemType.value = '';
@@ -240,6 +290,23 @@ class BulkImportManager {
         if (elements.importStep4) elements.importStep4.classList.add('d-none');
         
         console.log('Import wizard reset complete');
+    }
+    
+    debugFileInput(context = 'unknown') {
+        const fileInput = document.getElementById('importFile');
+        console.log(`=== FILE INPUT DEBUG [${context}] ===`);
+        if (fileInput) {
+            console.log('File input exists:', true);
+            console.log('File input value:', fileInput.value);
+            console.log('File input type:', fileInput.type);
+            console.log('Files length:', fileInput.files.length);
+            console.log('Element id:', fileInput.id);
+            console.log('Element disabled:', fileInput.disabled);
+            console.log('Element readonly:', fileInput.readOnly);
+        } else {
+            console.log('File input exists:', false);
+        }
+        console.log('=== END FILE INPUT DEBUG ===');
     }
     
     clearImportState() {
@@ -257,12 +324,20 @@ class BulkImportManager {
         this.existingSuppliers = [];
         this.existingCategories = [];
         
-        // Clear file input
+        // Clear file input completely
         const fileInput = document.getElementById('importFile');
         if (fileInput) {
+            console.log('=== CLEARING FILE INPUT STATE ===');
+            console.log('File input current value before reset:', fileInput.value);
+            console.log('File input current type before reset:', fileInput.type);
             fileInput.value = '';
-            // Trigger change event to ensure proper cleanup
-            fileInput.dispatchEvent(new Event('change'));
+            fileInput.type = 'text';
+            fileInput.type = 'file';
+            console.log('File input value after reset:', fileInput.value);
+            console.log('File input type after reset:', fileInput.type);
+            console.log('File input reset completely');
+        } else {
+            console.warn('File input element not found during clearImportState');
         }
         
         console.log('Import state cleared completely');
@@ -357,7 +432,12 @@ class BulkImportManager {
 
     async handleFileSelection(event) {
         const file = event.target.files[0];
-        console.log('File selection event:', file ? file.name : 'No file selected');
+        console.log('=== FILE SELECTION EVENT ===');
+        console.log('File:', file ? file.name : 'No file selected');
+        console.log('File size:', file ? file.size : 'N/A');
+        console.log('File type:', file ? file.type : 'N/A');
+        console.log('Input element:', event.target);
+        console.log('Files length:', event.target.files.length);
         
         if (!file) {
             // File was cleared - reset headers and data

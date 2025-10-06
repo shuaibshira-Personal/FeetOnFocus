@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Input Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+        .debug-output {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Input Reset Test</h1>
+    <p>This page helps test file input reset behavior to debug the bulk import issue.</p>
+
+    <div class="test-section">
+        <h3>Test File Input</h3>
+        <input type="file" id="testFileInput" accept=".csv,.xlsx,.xls">
+        <br><br>
+        
+        <button onclick="clearValue()">Clear Value (.value = '')</button>
+        <button onclick="resetType()">Reset Type (text → file)</button>
+        <button onclick="fullReset()">Full Reset (value + type)</button>
+        <button onclick="debugInput()">Debug Input State</button>
+        <button onclick="clearDebug()">Clear Debug</button>
+        
+        <div class="debug-output" id="debugOutput"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Instructions</h3>
+        <ol>
+            <li>Select a file using the file input above</li>
+            <li>Try to select the same file again - it should not work</li>
+            <li>Use the "Clear Value" button and try again - might not work</li>
+            <li>Use the "Reset Type" button and try again - should work</li>
+            <li>Use the "Full Reset" button for the most reliable reset</li>
+        </ol>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('testFileInput');
+        const debugOutput = document.getElementById('debugOutput');
+
+        // Add event listeners
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            log(`FILE CHANGED: ${file ? file.name + ' (' + file.size + ' bytes)' : 'No file'}`);
+        });
+
+        fileInput.addEventListener('click', (e) => {
+            log(`FILE INPUT CLICKED - Current value: "${e.target.value}"`);
+        });
+
+        function log(message) {
+            debugOutput.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+        }
+
+        function clearValue() {
+            log('CLEARING VALUE...');
+            fileInput.value = '';
+            log(`Value after clear: "${fileInput.value}"`);
+        }
+
+        function resetType() {
+            log('RESETTING TYPE...');
+            log(`Type before: ${fileInput.type}`);
+            fileInput.type = 'text';
+            fileInput.type = 'file';
+            log(`Type after: ${fileInput.type}`);
+        }
+
+        function fullReset() {
+            log('FULL RESET...');
+            log(`Before - Value: "${fileInput.value}", Type: ${fileInput.type}`);
+            fileInput.value = '';
+            fileInput.type = 'text';
+            fileInput.type = 'file';
+            log(`After - Value: "${fileInput.value}", Type: ${fileInput.type}`);
+        }
+
+        function debugInput() {
+            log('=== DEBUG INPUT STATE ===');
+            log(`Value: "${fileInput.value}"`);
+            log(`Type: ${fileInput.type}`);
+            log(`Files length: ${fileInput.files.length}`);
+            log(`Disabled: ${fileInput.disabled}`);
+            log(`ReadOnly: ${fileInput.readOnly}`);
+            log(`ID: ${fileInput.id}`);
+            log('=== END DEBUG ===');
+        }
+
+        function clearDebug() {
+            debugOutput.textContent = '';
+        }
+
+        // Initial debug
+        log('File input test page loaded');
+        debugInput();
+    </script>
+</body>
+</html>
