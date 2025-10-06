@@ -81,7 +81,17 @@ class BulkImportManager {
 
         // Modal show event
         safeAddEventListener('bulkImportModal', 'shown.bs.modal', () => {
-            this.resetImportWizard();
+            console.log('Bulk import modal shown - resetting wizard');
+            // Small delay to ensure DOM is fully ready
+            setTimeout(() => {
+                this.resetImportWizard();
+            }, 100);
+        });
+        
+        // Modal hidden event - ensure clean state when modal is closed
+        safeAddEventListener('bulkImportModal', 'hidden.bs.modal', () => {
+            console.log('Bulk import modal hidden - clearing state');
+            this.clearImportState();
         });
 
         // File input change
@@ -106,6 +116,11 @@ class BulkImportManager {
         // Import button
         safeAddEventListener('importBtn', 'click', () => {
             this.processImport();
+        });
+        
+        // Cancel button
+        safeAddEventListener('cancelImportBtn', 'click', () => {
+            this.cancelImport();
         });
 
         // All bulk import buttons - these might not exist depending on the current tab
@@ -226,6 +241,110 @@ class BulkImportManager {
         
         console.log('Import wizard reset complete');
     }
+    
+    clearImportState() {
+        // Clear all data when modal is closed
+        this.fileData = null;
+        this.headers = [];
+        this.parsedData = [];
+        this.fieldMappings = {};
+        this.currentProfile = null;
+        this.dataResolutions = {
+            suppliers: new Map(),
+            categories: new Map()
+        };
+        this.pendingResolutions = [];
+        this.existingSuppliers = [];
+        this.existingCategories = [];
+        
+        // Clear file input
+        const fileInput = document.getElementById('importFile');
+        if (fileInput) {
+            fileInput.value = '';
+            // Trigger change event to ensure proper cleanup
+            fileInput.dispatchEvent(new Event('change'));
+        }
+        
+        console.log('Import state cleared completely');
+    }
+    
+    async cancelImport() {
+        const confirmCancel = confirm('Are you sure you want to cancel the import? All progress will be lost.');
+        if (confirmCancel) {
+            this.closeModal();
+            await this.refreshAllPages();
+        }
+    }
+    
+    closeModal() {
+        const modalElement = document.getElementById('bulkImportModal');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+        }
+        // Clear all state when modal is manually closed
+        this.clearImportState();
+    }
+    
+    async refreshAllPages() {
+        console.log('🔄 Refreshing all relevant pages after import completion/cancellation...');
+        
+        try {
+            // Refresh items manager and all type-specific views
+            if (window.itemsManager) {
+                console.log('🔄 Refreshing items manager and all item views...');
+                await itemsManager.loadItems();
+                await itemsManager.refreshSupplierOptions();
+                await itemsManager.refreshCategoryOptions();
+                
+                // Refresh type-specific tables if they're currently visible
+                const activeTab = document.querySelector('.nav-link.active, .dropdown-item.active');
+                if (activeTab) {
+                    const tabText = activeTab.textContent.trim().toLowerCase();
+                    if (tabText.includes('reselling')) {
+                        await itemsManager.loadItemsByType('reselling');
+                    } else if (tabText.includes('consumables')) {
+                        await itemsManager.loadItemsByType('consumable');
+                    } else if (tabText.includes('office equipment')) {
+                        await itemsManager.loadItemsByType('office_equipment');
+                    }
+                }
+            }
+            
+            // Refresh suppliers manager
+            if (window.suppliersManager) {
+                console.log('🔄 Refreshing suppliers...');
+                await suppliersManager.loadSuppliers();
+            }
+            
+            // Refresh categories manager
+            if (window.categoriesManager) {
+                console.log('🔄 Refreshing categories...');
+                await categoriesManager.loadCategories();
+            }
+            
+            // Refresh dashboard statistics
+            if (window.dashboard) {
+                console.log('🔄 Refreshing dashboard stats...');
+                await dashboard.refreshStats();
+            }
+            
+            // Refresh any reports if active
+            if (window.reportsManager) {
+                console.log('🔄 Refreshing reports...');
+                // Reports typically refresh when viewed
+            }
+            
+            console.log('✅ All pages refreshed successfully');
+            showToast('All views have been refreshed', 'info');
+            
+        } catch (error) {
+            console.error('❌ Error refreshing pages:', error);
+            showToast('Some views may need manual refresh', 'warning');
+        }
+    }
 
     updateStepDisplay() {
         document.getElementById('currentStep').textContent = `Step ${this.currentStep} of ${this.maxSteps}`;
@@ -238,7 +357,15 @@ class BulkImportManager {
 
     async handleFileSelection(event) {
         const file = event.target.files[0];
-        if (!file) return;
+        console.log('File selection event:', file ? file.name : 'No file selected');
+        
+        if (!file) {
+            // File was cleared - reset headers and data
+            this.headers = [];
+            this.parsedData = [];
+            console.log('File input cleared - data reset');
+            return;
+        }
 
         try {
             this.showLoading('importStep1');
@@ -562,7 +689,6 @@ class BulkImportManager {
             'costPrice': { label: 'Cost Price', required: false, description: 'Cost price per unit' },
             'sellingPrice': { label: 'Selling Price', required: false, description: 'Selling price per unit' },
             'lowStockThreshold': { label: 'Low Stock Threshold', required: false, description: 'Alert when stock falls below this number' },
-            'location': { label: 'Location', required: false, description: 'Storage location' },
             'notes': { label: 'Notes', required: false, description: 'Additional notes' }
         };
 
@@ -591,10 +717,18 @@ class BulkImportManager {
         mappingHtml += '</div>';
         container.innerHTML = mappingHtml;
 
-        // Add event listeners for mapping changes
+        // Add event listeners for mapping changes and initialize preselected mappings
         if (container) {
             container.querySelectorAll('.field-mapping').forEach(select => {
                 if (select) {
+                    const field = select.dataset.field;
+                    const selectedValue = select.value;
+                    
+                    // Initialize mapping if a value is already selected (preselected)
+                    if (field && selectedValue) {
+                        this.fieldMappings[field] = selectedValue;
+                    }
+                    
                     select.addEventListener('change', (e) => {
                         const field = e.target.dataset ? e.target.dataset.field : null;
                         const column = e.target.value;
@@ -604,6 +738,10 @@ class BulkImportManager {
                         } else if (field) {
                             delete this.fieldMappings[field];
                         }
+                        
+                        // Debug logging
+                        console.log('Field mapping updated:', field, '→', column);
+                        console.log('Current fieldMappings:', this.fieldMappings);
                     });
                 }
             });
@@ -637,7 +775,6 @@ class BulkImportManager {
             'costPrice': ['cost', 'cost price', 'unit cost', 'price'],
             'sellingPrice': ['selling price', 'sale price', 'retail price'],
             'lowStockThreshold': ['threshold', 'min stock', 'minimum'],
-            'location': ['location', 'warehouse', 'bin', 'shelf'],
             'notes': ['notes', 'comments', 'remarks']
         };
 
@@ -658,7 +795,21 @@ class BulkImportManager {
 
     validateFieldMappings() {
         // At minimum, we need a name field
-        return this.fieldMappings.name && this.headers.includes(this.fieldMappings.name);
+        console.log('Validating field mappings...');
+        console.log('Current fieldMappings:', this.fieldMappings);
+        console.log('Available headers:', this.headers);
+        
+        const hasNameField = this.fieldMappings.name && this.headers.includes(this.fieldMappings.name);
+        console.log('Name field mapped:', this.fieldMappings.name);
+        console.log('Name field valid:', hasNameField);
+        
+        if (!hasNameField) {
+            console.warn('Validation failed: Name field is not properly mapped');
+            console.warn('Expected: name field mapped to one of:', this.headers);
+            console.warn('Actual: name field mapped to:', this.fieldMappings.name);
+        }
+        
+        return hasNameField;
     }
     
     async showDataValidation() {
@@ -1440,9 +1591,6 @@ class BulkImportManager {
                 await this.saveImportProfile(profileName, itemType);
             }
 
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('bulkImportModal')).hide();
-
             // Show detailed results message
             let message = `Import completed! ${imported} items imported, ${updated} items updated`;
             if (errors > 0) {
@@ -1463,14 +1611,9 @@ class BulkImportManager {
             
             showToast(message, errors > 0 ? 'warning' : 'success');
 
-            // Refresh the UI
-            if (window.dashboard) {
-                await dashboard.refreshStats();
-            }
-            
-            if (window.itemsManager) {
-                await itemsManager.loadItems();
-            }
+            // Close modal and refresh all pages
+            this.closeModal();
+            await this.refreshAllPages();
 
         } catch (error) {
             console.error('Import error:', error);

@@ -1518,7 +1518,7 @@
     </div>
 
     <!-- Bulk Import Modal -->
-    <div class="modal fade" id="bulkImportModal" tabindex="-1">
+    <div class="modal fade" id="bulkImportModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1644,12 +1644,18 @@
                     <div class="me-auto">
                         <span class="badge bg-secondary" id="currentStep">Step 1 of 4</span>
                     </div>
-                    <button type="button" class="btn btn-secondary" id="prevStepBtn" style="display: none;">Previous</button>
-                    <button type="button" class="btn btn-primary" id="nextStepBtn">Next</button>
+                    <button type="button" class="btn btn-secondary" id="cancelImportBtn">
+                        <i class="fas fa-times"></i> Cancel Import
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="prevStepBtn" style="display: none;">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-primary" id="nextStepBtn">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
                     <button type="button" class="btn btn-success" id="importBtn" style="display: none;">
                         <i class="fas fa-upload"></i> Import Items
                     </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 </div>
             </div>
         </div>
