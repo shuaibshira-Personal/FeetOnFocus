@@ -318,19 +318,8 @@ class DataManager {
 
             alert(message);
             
-            // Refresh UI
-            if (window.itemsManager) {
-                await itemsManager.loadItems();
-                await itemsManager.refreshSupplierOptions();
-                await itemsManager.refreshCategoryOptions();
-            }
-            
-            if (window.dashboard) {
-                await dashboard.refreshStats();
-            }
-
-            // Update stats in modal
-            await this.loadDataStats();
+            // Comprehensive UI refresh
+            await this.refreshAllUIComponents();
             
             showToast('Data imported successfully', 'success');
             
@@ -381,18 +370,8 @@ class DataManager {
 
             alert(message);
             
-            // Refresh UI
-            if (window.itemsManager) {
-                await itemsManager.loadItems();
-                await itemsManager.refreshSupplierOptions();
-                await itemsManager.refreshCategoryOptions();
-            }
-            
-            if (window.dashboard) {
-                await dashboard.refreshStats();
-            }
-
-            await this.loadDataStats();
+            // Comprehensive UI refresh
+            await this.refreshAllUIComponents();
             showToast('Backup restored successfully', 'success');
             
         } catch (error) {
@@ -746,14 +725,8 @@ class DataManager {
                 
                 showToast(`Emergency restore completed: ${restored} items restored, ${errors} errors`, restored > 0 ? 'success' : 'warning');
                 
-                // Refresh UI
-                if (window.itemsManager) {
-                    await itemsManager.loadItems();
-                }
-                if (window.dashboard) {
-                    await dashboard.refreshStats();
-                }
-                await this.loadDataStats();
+                // Comprehensive UI refresh
+                await this.refreshAllUIComponents();
             }
         } catch (error) {
             console.error('Emergency restore error:', error);
@@ -784,6 +757,74 @@ class DataManager {
         alert(instructions);
     }
 
+    async refreshAllUIComponents() {
+        console.log('🔄 Starting comprehensive UI refresh after backup restore...');
+        
+        try {
+            // Refresh main items manager and all views
+            if (window.itemsManager) {
+                console.log('🔄 Refreshing items manager...');
+                await itemsManager.loadItems();
+                await itemsManager.refreshSupplierOptions();
+                await itemsManager.refreshCategoryOptions();
+                
+                // Refresh type-specific views if they're currently active
+                const currentTab = document.querySelector('.nav-link.active, .dropdown-item.active');
+                if (currentTab) {
+                    const tabText = currentTab.textContent.trim().toLowerCase();
+                    console.log('🔄 Current tab:', tabText);
+                    
+                    if (tabText.includes('reselling')) {
+                        await itemsManager.loadItemsByType('reselling');
+                    } else if (tabText.includes('consumables')) {
+                        await itemsManager.loadItemsByType('consumable');
+                    } else if (tabText.includes('office equipment')) {
+                        await itemsManager.loadItemsByType('office_equipment');
+                    }
+                }
+            }
+            
+            // Refresh suppliers manager
+            if (window.suppliersManager) {
+                console.log('🔄 Refreshing suppliers manager...');
+                await suppliersManager.loadSuppliers();
+            }
+            
+            // Refresh categories manager
+            if (window.categoriesManager) {
+                console.log('🔄 Refreshing categories manager...');
+                await categoriesManager.loadCategories();
+            }
+            
+            // Refresh dashboard
+            if (window.dashboard) {
+                console.log('🔄 Refreshing dashboard stats...');
+                await dashboard.refreshStats();
+            }
+            
+            // Refresh stock manager if it exists
+            if (window.stockManager) {
+                console.log('🔄 Refreshing stock manager...');
+                // Stock manager typically refreshes when items are updated
+            }
+            
+            // Refresh reports if active
+            if (window.reportsManager) {
+                console.log('🔄 Refreshing reports manager...');
+                // Reports will refresh when viewed next
+            }
+            
+            // Update data stats in modal
+            await this.loadDataStats();
+            
+            console.log('✅ Comprehensive UI refresh completed');
+            
+        } catch (error) {
+            console.error('❌ Error during comprehensive UI refresh:', error);
+            // Don't throw - partial refresh is better than no refresh
+        }
+    }
+    
     getLastBackupDate() {
         try {
             const backupKeys = [];

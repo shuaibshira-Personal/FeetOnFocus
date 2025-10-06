@@ -44,7 +44,7 @@
       ],
       "icon": "assets/icon.ico",
       "requestedExecutionLevel": "asInvoker",
-      "sign": null
+      "signAndEditExecutable": false
     },
     "portable": {
       "artifactName": "FeetOnFocus-Inventory-Portable.exe"
