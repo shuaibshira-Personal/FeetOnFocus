@@ -1601,8 +1601,23 @@
                         </div>
                     </div>
                     
-                    <!-- Step 3: Preview -->
+                    <!-- Step 3: Data Validation -->
                     <div id="importStep3" class="import-step d-none">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-shield-alt"></i> Data Validation</h6>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                Checking suppliers and categories against your existing data...
+                            </div>
+                        </div>
+                        
+                        <div id="dataValidationContainer">
+                            <!-- Data validation content will be populated dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4: Preview -->
+                    <div id="importStep4" class="import-step d-none">
                         <div class="mb-3">
                             <h6><i class="fas fa-eye"></i> Import Preview</h6>
                             <div class="alert alert-success">
@@ -1627,7 +1642,7 @@
                 </div>
                 <div class="modal-footer">
                     <div class="me-auto">
-                        <span class="badge bg-secondary" id="currentStep">Step 1 of 3</span>
+                        <span class="badge bg-secondary" id="currentStep">Step 1 of 4</span>
                     </div>
                     <button type="button" class="btn btn-secondary" id="prevStepBtn" style="display: none;">Previous</button>
                     <button type="button" class="btn btn-primary" id="nextStepBtn">Next</button>
