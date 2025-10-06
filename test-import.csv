@@ -1,0 +1,6 @@
+Name,Code,Supplier,Balance,Unit Cost,Category,Description
+Test Item 1,TI001,Test Supplier,10,5.99,Electronics,A sample test item for bulk import
+Test Item 2,TI002,Test Supplier,25,12.50,Office Supplies,Another test item with different category
+Test Item 3,TI003,Alternative Supplier,5,8.75,Electronics,Third test item with low stock
+Test Item 4,TI004,Test Supplier,0,15.25,Consumables,Out of stock item for testing
+Test Item 5,TI005,Premium Supplier,50,3.99,Office Supplies,High quantity test item

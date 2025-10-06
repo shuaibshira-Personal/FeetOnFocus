@@ -117,6 +117,11 @@ class BulkImportManager {
             this.showBulkImportModal();
         }, false);
         
+        // Download template button (will be added to modal)
+        safeAddEventListener('downloadTemplateBtn', 'click', () => {
+            this.downloadImportTemplate();
+        }, false);
+        
         console.log('Bulk import event listeners setup complete');
     }
 
@@ -745,6 +750,138 @@ class BulkImportManager {
             element.removeAttribute('data-original-content');
         }
     }
+    
+    showProgressUI(elementId, totalItems) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            const originalContent = element.innerHTML;
+            element.setAttribute('data-original-content', originalContent);
+            
+            element.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center" style="min-height: 300px;">
+                    <div class="text-center" style="width: 100%; max-width: 500px;">
+                        <h5 class="mb-3"><i class="fas fa-upload"></i> Importing Items...</h5>
+                        
+                        <div class="progress mb-3" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: 0%" 
+                                 aria-valuenow="0" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100" id="importProgressBar">
+                                0%
+                            </div>
+                        </div>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-3">
+                                <div class="card bg-light">
+                                    <div class="card-body py-2">
+                                        <h6 class="card-title text-success mb-0">Imported</h6>
+                                        <span class="h5" id="importedCount">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="card bg-light">
+                                    <div class="card-body py-2">
+                                        <h6 class="card-title text-info mb-0">Updated</h6>
+                                        <span class="h5" id="updatedCount">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="card bg-light">
+                                    <div class="card-body py-2">
+                                        <h6 class="card-title text-danger mb-0">Errors</h6>
+                                        <span class="h5" id="errorCount">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="card bg-light">
+                                    <div class="card-body py-2">
+                                        <h6 class="card-title text-muted mb-0">Progress</h6>
+                                        <span class="h5" id="progressText">0/${totalItems}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-muted">
+                            <small>Processing items... This may take a moment for large imports.</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    updateProgress(processed, total, stats) {
+        const percentage = Math.round((processed / total) * 100);
+        
+        // Update progress bar
+        const progressBar = document.getElementById('importProgressBar');
+        if (progressBar) {
+            progressBar.style.width = `${percentage}%`;
+            progressBar.setAttribute('aria-valuenow', percentage);
+            progressBar.textContent = `${percentage}%`;
+        }
+        
+        // Update counters
+        const importedEl = document.getElementById('importedCount');
+        const updatedEl = document.getElementById('updatedCount');
+        const errorEl = document.getElementById('errorCount');
+        const progressEl = document.getElementById('progressText');
+        
+        if (importedEl) importedEl.textContent = stats.imported;
+        if (updatedEl) updatedEl.textContent = stats.updated;
+        if (errorEl) errorEl.textContent = stats.errors;
+        if (progressEl) progressEl.textContent = `${processed}/${total}`;
+    }
+    
+    validateItemData(itemData) {
+        const errors = [];
+        
+        // Validate name
+        if (!itemData.name || typeof itemData.name !== 'string' || itemData.name.trim().length === 0) {
+            errors.push('Item name is required');
+        } else if (itemData.name.length > 255) {
+            errors.push('Item name must be less than 255 characters');
+        }
+        
+        // Validate SKU if provided
+        if (itemData.sku && (typeof itemData.sku !== 'string' || itemData.sku.length > 50)) {
+            errors.push('SKU must be a string with less than 50 characters');
+        }
+        
+        // Validate numeric fields
+        const numericFields = ['quantity', 'costPrice', 'sellingPrice', 'lowStockThreshold'];
+        numericFields.forEach(field => {
+            if (itemData[field] !== undefined && itemData[field] !== null) {
+                const value = Number(itemData[field]);
+                if (isNaN(value) || value < 0) {
+                    errors.push(`${field} must be a valid positive number`);
+                }
+            }
+        });
+        
+        // Validate item type
+        const validItemTypes = ['reselling', 'consumable', 'office_equipment'];
+        if (itemData.itemType && !validItemTypes.includes(itemData.itemType)) {
+            errors.push(`Invalid item type. Must be one of: ${validItemTypes.join(', ')}`);
+        }
+        
+        // Validate description length
+        if (itemData.description && itemData.description.length > 1000) {
+            errors.push('Description must be less than 1000 characters');
+        }
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
 
     async processImport() {
         try {
@@ -764,13 +901,17 @@ class BulkImportManager {
                 throw new Error('Please select an item type');
             }
 
-            this.showLoading('importStep3');
+            // Show progress UI instead of loading
+            this.showProgressUI('importStep3', this.parsedData.length);
             
             let imported = 0;
             let updated = 0;
             let errors = 0;
+            const errorDetails = [];
+            let processed = 0;
 
-            for (const row of this.parsedData) {
+            for (let i = 0; i < this.parsedData.length; i++) {
+                const row = this.parsedData[i];
                 try {
                     const itemData = { itemType };
                     
@@ -790,6 +931,24 @@ class BulkImportManager {
 
                     // Skip rows without names
                     if (!itemData.name || itemData.name.trim() === '') {
+                        errors++;
+                        errorDetails.push({
+                            row: i + 1,
+                            itemName: 'No name provided',
+                            error: 'Item name is required and cannot be empty'
+                        });
+                        continue;
+                    }
+                    
+                    // Validate data quality
+                    const validation = this.validateItemData(itemData);
+                    if (!validation.isValid) {
+                        errors++;
+                        errorDetails.push({
+                            row: i + 1,
+                            itemName: itemData.name,
+                            error: validation.errors.join('; ')
+                        });
                         continue;
                     }
 
@@ -816,6 +975,20 @@ class BulkImportManager {
                 } catch (itemError) {
                     console.error('Error processing item:', itemError, row);
                     errors++;
+                    errorDetails.push({
+                        row: i + 1,
+                        itemName: itemData.name || 'Unknown',
+                        error: itemError.message
+                    });
+                }
+                
+                // Update progress
+                processed++;
+                this.updateProgress(processed, this.parsedData.length, { imported, updated, errors });
+                
+                // Allow UI to update
+                if (processed % 10 === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 1));
                 }
             }
 
@@ -827,8 +1000,25 @@ class BulkImportManager {
             // Close modal
             bootstrap.Modal.getInstance(document.getElementById('bulkImportModal')).hide();
 
-            // Show success message
-            showToast(`Import completed! ${imported} items imported, ${updated} items updated${errors > 0 ? `, ${errors} errors` : ''}`, 'success');
+            // Show detailed results message
+            let message = `Import completed! ${imported} items imported, ${updated} items updated`;
+            if (errors > 0) {
+                message += `, ${errors} errors`;
+                console.log('Import errors:', errorDetails);
+                
+                // Show detailed error summary
+                const errorSummary = errorDetails.slice(0, 5).map(err => 
+                    `Row ${err.row} (${err.itemName}): ${err.error}`
+                ).join('\n');
+                
+                if (errorDetails.length > 5) {
+                    message += `\n\nFirst 5 errors:\n${errorSummary}\n\n...and ${errorDetails.length - 5} more. Check console for full details.`;
+                } else if (errorDetails.length > 0) {
+                    message += `\n\nErrors:\n${errorSummary}`;
+                }
+            }
+            
+            showToast(message, errors > 0 ? 'warning' : 'success');
 
             // Refresh the UI
             if (window.dashboard) {
@@ -916,6 +1106,78 @@ class BulkImportManager {
         if (currentValue) {
             dropdown.value = currentValue;
         }
+    }
+    
+    downloadImportTemplate(itemType = 'reselling') {
+        console.log('Downloading import template for:', itemType);
+        
+        // Template headers and sample data based on item type
+        const templates = {
+            reselling: {
+                headers: ['Name', 'SKU', 'Description', 'Category', 'Supplier', 'Cost Price', 'Selling Price', 'Quantity', 'Low Stock Threshold'],
+                sampleData: [
+                    ['Sample Item 1', 'SKU001', 'Description for sample item 1', 'Electronics', 'Supplier A', '10.50', '15.99', '25', '5'],
+                    ['Sample Item 2', 'SKU002', 'Description for sample item 2', 'Clothing', 'Supplier B', '8.25', '12.50', '15', '3'],
+                    ['Sample Item 3', 'SKU003', 'Description for sample item 3', 'Books', 'Supplier C', '5.00', '9.99', '50', '10']
+                ]
+            },
+            consumables: {
+                headers: ['Name', 'SKU', 'Description', 'Category', 'Supplier', 'Cost Price', 'Quantity', 'Low Stock Threshold'],
+                sampleData: [
+                    ['Office Paper A4', 'PAPER001', '80gsm white office paper', 'Office Supplies', 'Office Depot', '2.50', '100', '20'],
+                    ['Printer Ink Cartridge', 'INK001', 'Black ink cartridge HP compatible', 'Printing', 'Ink Supplier', '15.99', '10', '2'],
+                    ['Sanitizer Gel', 'SANI001', 'Hand sanitizer gel 500ml', 'Health', 'Medical Supply Co', '3.25', '25', '5']
+                ]
+            },
+            office_equipment: {
+                headers: ['Name', 'SKU', 'Description', 'Category', 'Supplier', 'Cost Price', 'Purchase Date'],
+                sampleData: [
+                    ['Office Desk', 'DESK001', 'Wooden office desk 120x80cm', 'Furniture', 'Office Furniture Ltd', '250.00', '2024-01-15'],
+                    ['Laptop Computer', 'LAPTOP001', 'Business laptop 15.6 inch', 'IT Equipment', 'Tech Supplier', '899.99', '2024-02-01'],
+                    ['Office Chair', 'CHAIR001', 'Ergonomic office chair with lumbar support', 'Furniture', 'Office Furniture Ltd', '180.50', '2024-01-20']
+                ]
+            }
+        };
+        
+        const template = templates[itemType] || templates.reselling;
+        const csvContent = this.generateCSVContent(template.headers, template.sampleData);
+        
+        // Download the file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `feetonfocus-import-template-${itemType}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        URL.revokeObjectURL(url);
+        showToast(`Download started: Import template for ${itemType} items`, 'success');
+    }
+    
+    generateCSVContent(headers, sampleData) {
+        const csvRows = [];
+        
+        // Add headers
+        csvRows.push(headers.join(','));
+        
+        // Add sample data
+        sampleData.forEach(row => {
+            const escapedRow = row.map(cell => {
+                // Escape quotes and wrap in quotes if necessary
+                if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))) {
+                    return `"${cell.replace(/"/g, '""')}"`;
+                }
+                return cell;
+            });
+            csvRows.push(escapedRow.join(','));
+        });
+        
+        return csvRows.join('\n');
     }
 }
 
