@@ -20,6 +20,9 @@ class BulkImportManager {
         this.pendingResolutions = [];
         this.existingSuppliers = [];
         this.existingCategories = [];
+        this.modalEventListenersSetup = false; // Flag to prevent duplicate setup
+        this.currentFileInput = null; // Reference to current file input element
+        this.profileEventListenersSetup = false; // Flag for profile event listeners
         
         // Default Halaxy profile
         this.defaultProfiles = {
@@ -71,22 +74,25 @@ class BulkImportManager {
             const element = document.getElementById(elementId);
             if (element) {
                 element.addEventListener(event, handler);
+                console.log(`✅ Event listener added: ${elementId} -> ${event}`);
             } else if (required) {
-                console.error(`Required element not found: ${elementId}`);
+                console.error(`❌ Required element not found: ${elementId}`);
             } else {
-                console.warn(`Optional element not found: ${elementId}`);
+                console.warn(`⚠️ Optional element not found: ${elementId}`);
             }
             return element;
         };
 
         // Modal show event
         safeAddEventListener('bulkImportModal', 'shown.bs.modal', () => {
+            console.log('🔥 BULK IMPORT MODAL SHOWN EVENT FIRED 🔥');
             console.log('Bulk import modal shown - resetting wizard');
             // Small delay to ensure DOM is fully ready
             setTimeout(() => {
+                console.log('🔥 MODAL SETUP TIMEOUT EXECUTING 🔥');
                 this.debugFileInput('before-reset-wizard');
                 this.resetImportWizard();
-                this.setupFileInputEventListeners(); // Set up file input events after modal is shown
+                this.setupModalEventListeners(); // Set up modal-specific events after modal is shown
                 this.debugFileInput('after-reset-wizard');
             }, 100);
         });
@@ -96,16 +102,21 @@ class BulkImportManager {
             console.log('Bulk import modal hidden - clearing state');
             this.debugFileInput('before-clear-state');
             this.clearImportState();
+            this.modalEventListenersSetup = false; // Reset flag for next modal open
+            this.profileEventListenersSetup = false; // Reset profile flag for next modal open
+            
+            // Clean up DOM observer
+            if (this.domObserver) {
+                this.domObserver.disconnect();
+                this.domObserver = null;
+                console.log('🔍 DOM watcher disconnected');
+            }
+            
             this.debugFileInput('after-clear-state');
         });
 
-        // Note: File input event listeners will be set up when modal is shown
+        // Note: File input and profile event listeners will be set up when modal is shown
         // to ensure DOM elements are accessible
-
-        // Profile selection change
-        safeAddEventListener('importProfile', 'change', (e) => {
-            this.handleProfileChange(e.target.value);
-        });
 
         // Navigation buttons
         safeAddEventListener('nextStepBtn', 'click', () => {
@@ -151,6 +162,31 @@ class BulkImportManager {
         console.log('Bulk import event listeners setup complete');
     }
     
+    setupModalEventListeners() {
+        if (this.modalEventListenersSetup) {
+            console.log('Modal event listeners already set up, skipping...');
+            return;
+        }
+        
+        console.log('Setting up modal-specific event listeners...');
+        
+        // Set up file input event listeners
+        this.setupFileInputEventListeners();
+        
+        // Set up profile selection event listener
+        this.setupProfileEventListener();
+        
+        // Set pending file type if there is one
+        if (this.pendingFileType) {
+            console.log('Setting pending file type:', this.pendingFileType);
+            this.setFileType(this.pendingFileType);
+            this.pendingFileType = null;
+        }
+        
+        this.modalEventListenersSetup = true;
+        console.log('Modal event listeners setup complete');
+    }
+    
     setupFileInputEventListeners() {
         console.log('Setting up file input event listeners...');
         
@@ -160,17 +196,18 @@ class BulkImportManager {
             return;
         }
         
-        // Remove existing listeners to avoid duplicates
-        const newFileInput = fileInput.cloneNode(true);
-        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+        // Don't replace the element - just add event listeners
+        // Store reference to the existing file input
+        this.currentFileInput = fileInput;
+        console.log('Stored reference to existing file input element (no replacement)');
         
         // File input change event
-        newFileInput.addEventListener('change', (e) => {
+        fileInput.addEventListener('change', (e) => {
             this.handleFileSelection(e);
         });
         
         // File input click event - clear value to allow reselection
-        newFileInput.addEventListener('click', (e) => {
+        fileInput.addEventListener('click', (e) => {
             console.log('=== FILE INPUT CLICKED ===');
             console.log('Current value before reset:', e.target.value);
             console.log('Input element exists:', !!e.target);
@@ -184,6 +221,81 @@ class BulkImportManager {
         });
         
         console.log('File input event listeners set up successfully');
+    }
+    
+    setupProfileEventListener() {
+        if (this.profileEventListenersSetup) {
+            console.log('Profile event listeners already set up, skipping...');
+            return;
+        }
+        
+        console.log('Setting up profile selection event listener...');
+        
+        const profileSelect = document.getElementById('importProfile');
+        if (!profileSelect) {
+            console.error('Profile select element not found during setup');
+            return;
+        }
+        
+        // Set up DOM mutation observer to watch for profile dropdown removal
+        this.setupDOMWatcher(profileSelect);
+        
+        // Don't clone/replace - just add event listener to existing element
+        console.log('Adding event listener to existing profile dropdown (preserving any selection)');
+        
+        // Profile selection change event
+        profileSelect.addEventListener('change', (e) => {
+            console.log('=== PROFILE CHANGED ===');
+            console.log('Selected profile:', e.target.value);
+            console.log('Event triggered by:', e.isTrusted ? 'User interaction' : 'Programmatic change');
+            console.log('Stack trace:', new Error().stack);
+            this.handleProfileChange(e.target.value);
+        });
+        
+        this.profileEventListenersSetup = true;
+        console.log('Profile event listener set up successfully');
+    }
+    
+    setupDOMWatcher(profileElement) {
+        console.log('🔍 Setting up DOM mutation observer for profile dropdown...');
+        
+        // Create a MutationObserver to watch for profile dropdown removal
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    // Check if any removed nodes contain our profile dropdown
+                    mutation.removedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (node.id === 'importProfile' || node.contains(profileElement)) {
+                                console.log('🚨 PROFILE DROPDOWN REMOVED FROM DOM! 🚨');
+                                console.log('Removed by mutation:', mutation);
+                                console.log('Parent that removed it:', mutation.target);
+                                console.log('Stack trace:', new Error().stack);
+                            }
+                        }
+                    });
+                }
+                
+                if (mutation.type === 'attributes' && mutation.target === profileElement) {
+                    console.log('🔧 Profile dropdown attributes changed:', mutation.attributeName);
+                }
+            });
+        });
+        
+        // Start observing the modal body for changes
+        const modalBody = document.querySelector('#bulkImportModal .modal-body');
+        if (modalBody) {
+            observer.observe(modalBody, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeOldValue: true
+            });
+            console.log('🔍 DOM watcher active - monitoring modal body for changes');
+        }
+        
+        // Store observer reference for cleanup
+        this.domObserver = observer;
     }
     
     setupConflictResolutionListeners() {
@@ -236,7 +348,7 @@ class BulkImportManager {
         this.headers = [];
         this.parsedData = [];
         this.fieldMappings = {};
-        this.currentProfile = null;
+        // Note: Don't clear currentProfile - user might want to reuse the same profile
         this.dataResolutions = {
             suppliers: new Map(),
             categories: new Map()
@@ -276,12 +388,13 @@ class BulkImportManager {
             console.log('File input value after reset:', elements.importFile.value);
             console.log('File input type after reset:', elements.importFile.type);
             console.log('File input cleared in resetImportWizard');
+            this.updateFileDisplay('No file selected');
         } else {
             console.warn('File input element not found during resetImportWizard');
         }
-        if (elements.importProfile) elements.importProfile.value = '';
+        // Note: Don't clear importProfile value - preserve user's profile selection
         if (elements.profileName) elements.profileName.value = '';
-        if (elements.itemType) elements.itemType.value = '';
+        // Note: Don't clear itemType - will be set by profile selection
         
         // Show step 1, hide others
         if (elements.importStep1) elements.importStep1.classList.remove('d-none');
@@ -309,13 +422,28 @@ class BulkImportManager {
         console.log('=== END FILE INPUT DEBUG ===');
     }
     
+    debugProfileDropdown(context = 'unknown') {
+        const profileDropdown = document.getElementById('importProfile');
+        console.log(`=== PROFILE DROPDOWN DEBUG [${context}] ===`);
+        if (profileDropdown) {
+            console.log('Profile dropdown exists:', true);
+            console.log('Profile dropdown value:', profileDropdown.value);
+            console.log('Profile dropdown selectedIndex:', profileDropdown.selectedIndex);
+            console.log('Profile dropdown options length:', profileDropdown.options.length);
+            console.log('Profile dropdown innerHTML:', profileDropdown.innerHTML);
+        } else {
+            console.log('Profile dropdown exists:', false);
+        }
+        console.log('=== END PROFILE DROPDOWN DEBUG ===');
+    }
+    
     clearImportState() {
         // Clear all data when modal is closed
         this.fileData = null;
         this.headers = [];
         this.parsedData = [];
         this.fieldMappings = {};
-        this.currentProfile = null;
+        // Note: Don't clear currentProfile - preserve for next import session
         this.dataResolutions = {
             suppliers: new Map(),
             categories: new Map()
@@ -336,6 +464,7 @@ class BulkImportManager {
             console.log('File input value after reset:', fileInput.value);
             console.log('File input type after reset:', fileInput.type);
             console.log('File input reset completely');
+            this.updateFileDisplay('No file selected');
         } else {
             console.warn('File input element not found during clearImportState');
         }
@@ -422,6 +551,7 @@ class BulkImportManager {
     }
 
     updateStepDisplay() {
+        console.log(`🔄 UPDATE STEP DISPLAY - Step ${this.currentStep} of ${this.maxSteps}`);
         document.getElementById('currentStep').textContent = `Step ${this.currentStep} of ${this.maxSteps}`;
         
         // Update button visibility
@@ -439,10 +569,14 @@ class BulkImportManager {
         console.log('Input element:', event.target);
         console.log('Files length:', event.target.files.length);
         
+        // Debug profile state before file processing
+        this.debugProfileDropdown('before-file-processing');
+        
         if (!file) {
             // File was cleared - reset headers and data
             this.headers = [];
             this.parsedData = [];
+            this.updateFileDisplay('No file selected');
             console.log('File input cleared - data reset');
             return;
         }
@@ -467,7 +601,11 @@ class BulkImportManager {
                 sampleRow: this.parsedData[0]
             });
             
+            this.updateFileDisplay(`${file.name} (${this.headers.length} columns, ${this.parsedData.length} rows)`);
             showToast(`File parsed successfully: ${this.headers.length} columns, ${this.parsedData.length} rows`, 'success');
+            
+            // Debug profile state after file processing
+            this.debugProfileDropdown('after-file-processing');
             
         } catch (error) {
             console.error('Error parsing file:', error);
@@ -477,11 +615,41 @@ class BulkImportManager {
             event.target.value = '';
             this.headers = [];
             this.parsedData = [];
+            this.updateFileDisplay('No file selected');
         } finally {
             this.hideLoading('importStep1');
         }
     }
 
+    updateFileDisplay(text) {
+        console.log('=== UPDATE FILE DISPLAY ===');
+        console.log('Display text:', text);
+        
+        // Update file display text near the file input - use stored reference or fallback
+        const fileInput = this.currentFileInput || document.getElementById('importFile');
+        const fileText = fileInput ? fileInput.nextElementSibling : null;
+        console.log('File input found (stored):', !!this.currentFileInput);
+        console.log('File input found (fallback):', !!document.getElementById('importFile'));
+        console.log('File input used:', !!fileInput);
+        console.log('File text element found:', !!fileText);
+        console.log('File text element class:', fileText ? fileText.className : 'none');
+        
+        if (fileText) {
+            if (text === 'No file selected') {
+                fileText.textContent = 'Select your CSV or Excel file to import, or download a template to get started';
+                fileText.className = 'form-text';
+                console.log('Set to default message');
+            } else {
+                fileText.textContent = text;
+                fileText.className = 'form-text text-success';
+                console.log('Set to success message:', text);
+            }
+        } else {
+            console.warn('File text element not found - cannot update display');
+        }
+        console.log('=== END UPDATE FILE DISPLAY ===');
+    }
+    
     getFileType(file) {
         const extension = file.name.split('.').pop().toLowerCase();
         if (extension === 'csv') return 'csv';
@@ -490,6 +658,7 @@ class BulkImportManager {
     }
 
     setFileType(fileType) {
+        console.log('Setting file type to:', fileType);
         const csvRadio = document.getElementById('csvFileType');
         const excelRadio = document.getElementById('excelFileType');
         
@@ -497,12 +666,21 @@ class BulkImportManager {
             if (fileType === 'csv') {
                 csvRadio.checked = true;
                 excelRadio.checked = false;
+                console.log('CSV radio button checked');
             } else {
                 excelRadio.checked = true;
                 csvRadio.checked = false;
+                console.log('Excel radio button checked');
             }
         } else {
-            console.error('File type radio buttons not found');
+            // Only warn if we don't already have modal elements set up
+            if (!this.modalEventListenersSetup) {
+                console.warn('File type radio buttons not found - will be set when modal elements are ready');
+                // Store the file type to set it later when DOM is ready
+                this.pendingFileType = fileType;
+            } else {
+                console.warn('File type radio buttons not found even after modal setup - this might be an issue');
+            }
         }
     }
 
@@ -655,22 +833,35 @@ class BulkImportManager {
     }
 
     handleProfileChange(profileKey) {
+        console.log('=== HANDLE PROFILE CHANGE ===');
+        console.log('Profile key:', profileKey);
+        
         if (!profileKey) {
+            console.log('No profile selected, clearing current profile');
             this.currentProfile = null;
             return;
         }
 
         const profile = this.defaultProfiles[profileKey] || this.importProfiles[profileKey];
+        console.log('Found profile:', profile ? profile.name : 'Not found');
+        
         if (profile) {
             this.currentProfile = profile;
+            console.log('Setting file type to:', profile.fileType);
             this.setFileType(profile.fileType);
             
             const itemTypeSelect = document.getElementById('itemType');
             if (profile.itemType && itemTypeSelect) {
+                console.log('Setting item type to:', profile.itemType);
                 itemTypeSelect.value = profile.itemType;
             }
             
+            console.log('Profile applied successfully:', profile.name);
             showToast(`Applied profile: ${profile.name}`, 'success');
+        } else {
+            console.warn('Profile not found for key:', profileKey);
+            console.log('Available default profiles:', Object.keys(this.defaultProfiles));
+            console.log('Available custom profiles:', Object.keys(this.importProfiles));
         }
     }
 
@@ -715,7 +906,8 @@ class BulkImportManager {
     }
 
     showCurrentStep() {
-        console.log(`Showing step ${this.currentStep}`);
+        console.log(`🎬 SHOW CURRENT STEP CALLED - Step ${this.currentStep} 🎬`);
+        console.log('Stack trace:', new Error().stack);
         
         // Hide all steps
         for (let i = 1; i <= this.maxSteps; i++) {
@@ -1403,26 +1595,52 @@ class BulkImportManager {
     showLoading(elementId) {
         const element = document.getElementById(elementId);
         if (element) {
-            const originalContent = element.innerHTML;
-            element.setAttribute('data-original-content', originalContent);
-            element.innerHTML = `
-                <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+            // Don't replace innerHTML - add overlay instead
+            if (!element.querySelector('.loading-overlay')) {
+                const loadingOverlay = document.createElement('div');
+                loadingOverlay.className = 'loading-overlay';
+                loadingOverlay.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(255, 255, 255, 0.9);
+                    z-index: 1000;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 200px;
+                `;
+                
+                loadingOverlay.innerHTML = `
                     <div class="text-center">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
                         <div class="mt-2">Processing...</div>
                     </div>
-                </div>
-            `;
+                `;
+                
+                // Make sure parent has relative positioning
+                if (element.style.position !== 'relative') {
+                    element.style.position = 'relative';
+                }
+                
+                element.appendChild(loadingOverlay);
+                console.log('🔄 Loading overlay added to', elementId);
+            }
         }
     }
 
     hideLoading(elementId) {
         const element = document.getElementById(elementId);
-        if (element && element.hasAttribute('data-original-content')) {
-            element.innerHTML = element.getAttribute('data-original-content');
-            element.removeAttribute('data-original-content');
+        if (element) {
+            const loadingOverlay = element.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.remove();
+                console.log('🔄 Loading overlay removed from', elementId);
+            }
         }
     }
     
@@ -1730,7 +1948,8 @@ class BulkImportManager {
             const stored = localStorage.getItem('feetonfocus_import_profiles');
             if (stored) {
                 this.importProfiles = JSON.parse(stored);
-                this.updateProfileDropdown();
+                console.log('Import profiles loaded:', Object.keys(this.importProfiles));
+                // Note: Profile dropdown will be updated when modal is shown
             }
         } catch (error) {
             console.error('Error loading import profiles:', error);
@@ -1746,11 +1965,22 @@ class BulkImportManager {
         }
     }
 
-    updateProfileDropdown() {
-        const dropdown = document.getElementById('importProfile');
-        const currentValue = dropdown.value;
+    updateProfileDropdown(targetDropdown = null) {
+        console.log('🚨 UPDATE PROFILE DROPDOWN CALLED 🚨');
+        console.log('Stack trace:', new Error().stack);
         
+        const dropdown = targetDropdown || document.getElementById('importProfile');
+        if (!dropdown) {
+            console.warn('Profile dropdown not found, cannot update');
+            return;
+        }
+        
+        const currentValue = dropdown.value;
+        console.log('🎯 BEFORE UPDATE: Profile dropdown current value:', currentValue);
+        
+        // Clear and rebuild options
         dropdown.innerHTML = '<option value="">Create New Profile...</option>';
+        console.log('🔥 Profile dropdown innerHTML reset - selection will be lost!');
         
         // Add default profiles
         Object.entries(this.defaultProfiles).forEach(([key, profile]) => {
@@ -1768,10 +1998,20 @@ class BulkImportManager {
             dropdown.appendChild(option);
         });
         
-        // Restore selection
+        // Restore selection - try current value first, then check if profile is still valid
         if (currentValue) {
             dropdown.value = currentValue;
+            // Verify the selection was successful (option exists)
+            if (dropdown.value === currentValue) {
+                console.log('Successfully restored profile selection:', currentValue);
+            } else {
+                console.warn('Could not restore profile selection - option no longer exists:', currentValue);
+                dropdown.value = '';
+            }
         }
+        
+        const totalProfiles = Object.keys(this.defaultProfiles).length + Object.keys(this.importProfiles).length;
+        console.log(`Profile dropdown updated with ${totalProfiles} profiles, selected: "${dropdown.value}"`);
     }
     
     downloadImportTemplate(itemType = 'reselling') {
