@@ -301,16 +301,177 @@ class BulkImportManager {
     setupConflictResolutionListeners() {
         // Add event delegation for dynamically created conflict resolution buttons
         document.addEventListener('click', (e) => {
-            if (e.target.matches('[data-action="map"]')) {
-                const index = parseInt(e.target.dataset.index);
-                const targetName = e.target.dataset.target;
-                const targetCode = e.target.dataset.targetCode;
+            if (e.target.matches('[data-action="map"]') || e.target.closest('[data-action="map"]')) {
+                const button = e.target.matches('[data-action="map"]') ? e.target : e.target.closest('[data-action="map"]');
+                const index = parseInt(button.dataset.index);
+                const targetName = button.dataset.target;
+                const targetCode = button.dataset.targetCode;
                 this.resolveConflictByMapping(index, targetName, targetCode);
-            } else if (e.target.matches('[data-action="create"]')) {
-                const index = parseInt(e.target.dataset.index);
+            } else if (e.target.matches('[data-action="create"]') || e.target.closest('[data-action="create"]')) {
+                const button = e.target.matches('[data-action="create"]') ? e.target : e.target.closest('[data-action="create"]');
+                const index = parseInt(button.dataset.index);
                 this.resolveConflictByCreating(index);
             }
+            // Handle split group action
+            else if (e.target.matches('[data-action="split-group"]') || e.target.closest('[data-action="split-group"]')) {
+                const button = e.target.matches('[data-action="split-group"]') ? e.target : e.target.closest('[data-action="split-group"]');
+                const index = parseInt(button.dataset.index);
+                this.splitConflictGroup(index);
+            }
+            // Handle autocomplete suggestion clicks
+            else if (e.target.matches('.autocomplete-suggestion-item')) {
+                this.handleAutocompleteSuggestionClick(e.target);
+            }
         });
+        
+        // Add event delegation for autocomplete inputs
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('.autocomplete-input')) {
+                this.handleAutocompleteInput(e.target);
+            }
+        });
+        
+        // Hide autocomplete on focus out
+        document.addEventListener('focusout', (e) => {
+            if (e.target.matches('.autocomplete-input')) {
+                setTimeout(() => {
+                    const suggestionsContainer = e.target.parentElement.querySelector('.autocomplete-suggestions');
+                    if (suggestionsContainer) {
+                        suggestionsContainer.style.display = 'none';
+                    }
+                }, 200); // Small delay to allow clicking on suggestions
+            }
+        });
+    }
+    
+    handleAutocompleteInput(input) {
+        const query = input.value.trim();
+        const type = input.dataset.type;
+        const index = parseInt(input.dataset.index);
+        const suggestionsContainer = input.parentElement.querySelector('.autocomplete-suggestions');
+        
+        console.log('Autocomplete triggered:', { query, type, dataLoaded: this.existingSuppliers.length, categories: this.existingCategories.length });
+        
+        if (!query || query.length < 1) { // Allow single character search
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        // Get the appropriate data source
+        const dataSource = type === 'supplier' ? this.existingSuppliers : this.existingCategories;
+        
+        console.log('Data source:', dataSource.length, 'items');
+        
+        if (!dataSource || dataSource.length === 0) {
+            console.warn('No data source available for autocomplete');
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        // Find matching items with improved search
+        const queryLower = query.toLowerCase();
+        const matches = dataSource
+            .filter(item => {
+                const name = item.name.toLowerCase();
+                const code = (item.code || '').toLowerCase();
+                return name.includes(queryLower) || 
+                       name.startsWith(queryLower) || 
+                       code.includes(queryLower) ||
+                       code.startsWith(queryLower);
+            })
+            .sort((a, b) => {
+                // Prioritize exact matches and starts-with matches
+                const aName = a.name.toLowerCase();
+                const bName = b.name.toLowerCase();
+                
+                if (aName.startsWith(queryLower) && !bName.startsWith(queryLower)) return -1;
+                if (!aName.startsWith(queryLower) && bName.startsWith(queryLower)) return 1;
+                if (aName.includes(queryLower) && !bName.includes(queryLower)) return -1;
+                if (!aName.includes(queryLower) && bName.includes(queryLower)) return 1;
+                
+                return a.name.localeCompare(b.name);
+            })
+            .slice(0, 10); // Limit to 10 suggestions
+        
+        console.log('Found matches:', matches.length);
+        
+        if (matches.length === 0) {
+            suggestionsContainer.innerHTML = '<div class="p-2 text-muted">No matches found</div>';
+            suggestionsContainer.style.display = 'block';
+            return;
+        }
+        
+        // Render suggestions
+        const suggestionsHtml = matches
+            .map(item => `
+                <div class="autocomplete-suggestion-item p-2 border-bottom" 
+                     data-index="${index}" 
+                     data-name="${item.name}" 
+                     data-code="${item.code || item.id}" 
+                     data-type="${type}">
+                    <strong>${this.highlightMatch(item.name, query)}</strong>
+                    ${item.code ? `<span class="text-muted ms-2">(${item.code})</span>` : ''}
+                </div>
+            `)
+            .join('');
+        
+        suggestionsContainer.innerHTML = suggestionsHtml;
+        suggestionsContainer.style.display = 'block';
+    }
+    
+    highlightMatch(text, query) {
+        const regex = new RegExp(`(${query})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    }
+    
+    handleAutocompleteSuggestionClick(suggestionElement) {
+        const index = parseInt(suggestionElement.dataset.index);
+        const name = suggestionElement.dataset.name;
+        const code = suggestionElement.dataset.code;
+        
+        // Hide suggestions
+        const suggestionsContainer = suggestionElement.parentElement;
+        suggestionsContainer.style.display = 'none';
+        
+        // Clear the input
+        const input = suggestionsContainer.parentElement.querySelector('.autocomplete-input');
+        if (input) {
+            input.value = '';
+        }
+        
+        // Resolve the conflict
+        this.resolveConflictByMapping(index, name, code);
+    }
+    
+    splitConflictGroup(index) {
+        const groupedConflict = this.pendingResolutions[index];
+        if (!groupedConflict || !groupedConflict.isGroup) {
+            console.error('Cannot split non-grouped conflict');
+            return;
+        }
+        
+        // Convert variants back to individual conflicts
+        const individualConflicts = groupedConflict.variants.map(variant => ({
+            type: groupedConflict.type,
+            importValue: variant.value,
+            itemCount: variant.itemCount,
+            affectedRows: variant.affectedRows,
+            sampleItems: variant.sampleItems,
+            suggestions: groupedConflict.suggestions, // Share suggestions
+            status: 'pending',
+            isGroup: false
+        }));
+        
+        // Replace the grouped conflict with individual conflicts
+        this.pendingResolutions.splice(index, 1, ...individualConflicts);
+        
+        // Re-render the conflicts UI
+        const container = document.getElementById('dataValidationContainer');
+        if (container) {
+            container.innerHTML = this.renderDataConflicts(this.pendingResolutions);
+        }
+        
+        showToast(`Split into ${individualConflicts.length} separate conflicts for individual resolution`, 'info');
     }
 
     showBulkImportModal(defaultItemType = null) {
@@ -1122,74 +1283,233 @@ class BulkImportManager {
     }
     
     async analyzeDataConflicts() {
-        const conflicts = [];
-        const uniqueSuppliers = new Set();
-        const uniqueCategories = new Set();
+        // Clear previous resolutions
+        this.dataResolutions.suppliers.clear();
+        this.dataResolutions.categories.clear();
+        this.pendingResolutions = [];
         
-        // Collect unique values from import data
-        this.parsedData.forEach(row => {
+        const conflicts = [];
+        const uniqueSuppliers = new Map(); // Changed to Map to track counts and affected rows
+        const uniqueCategories = new Map(); // Changed to Map to track counts and affected rows
+        
+        // Collect unique values from import data with item counts and row references
+        this.parsedData.forEach((row, rowIndex) => {
             if (this.fieldMappings.supplier && row[this.fieldMappings.supplier]) {
-                uniqueSuppliers.add(row[this.fieldMappings.supplier].trim());
+                const supplierName = row[this.fieldMappings.supplier].trim();
+                if (!uniqueSuppliers.has(supplierName)) {
+                    uniqueSuppliers.set(supplierName, {
+                        name: supplierName,
+                        itemCount: 0,
+                        affectedRows: [],
+                        sampleItems: []
+                    });
+                }
+                const supplierData = uniqueSuppliers.get(supplierName);
+                supplierData.itemCount++;
+                supplierData.affectedRows.push(rowIndex + 1); // 1-based row numbers
+                if (supplierData.sampleItems.length < 3) {
+                    supplierData.sampleItems.push(row[this.fieldMappings.name] || `Item ${rowIndex + 1}`);
+                }
             }
+            
             if (this.fieldMappings.category && row[this.fieldMappings.category]) {
-                uniqueCategories.add(row[this.fieldMappings.category].trim());
+                const categoryName = row[this.fieldMappings.category].trim();
+                if (!uniqueCategories.has(categoryName)) {
+                    uniqueCategories.set(categoryName, {
+                        name: categoryName,
+                        itemCount: 0,
+                        affectedRows: [],
+                        sampleItems: []
+                    });
+                }
+                const categoryData = uniqueCategories.get(categoryName);
+                categoryData.itemCount++;
+                categoryData.affectedRows.push(rowIndex + 1);
+                if (categoryData.sampleItems.length < 3) {
+                    categoryData.sampleItems.push(row[this.fieldMappings.name] || `Item ${rowIndex + 1}`);
+                }
             }
         });
         
         // Check suppliers
-        uniqueSuppliers.forEach(supplierName => {
+        uniqueSuppliers.forEach((supplierData, supplierName) => {
+            // First check for exact case-insensitive match
             const exactMatch = this.existingSuppliers.find(s => 
-                s.name.toLowerCase() === supplierName.toLowerCase()
+                s.name.toLowerCase().trim() === supplierName.toLowerCase().trim()
             );
             
             if (!exactMatch) {
-                const suggestions = this.findSuggestions(supplierName, this.existingSuppliers, 'name');
-                conflicts.push({
-                    type: 'supplier',
-                    importValue: supplierName,
-                    suggestions: suggestions.slice(0, 3), // Top 3 suggestions
-                    status: 'pending'
-                });
+                // Check if already resolved (might have been resolved in a previous operation)
+                if (!this.dataResolutions.suppliers.has(supplierName)) {
+                    const suggestions = this.findSuggestions(supplierName, this.existingSuppliers, 'name');
+                    conflicts.push({
+                        type: 'supplier',
+                        importValue: supplierName,
+                        itemCount: supplierData.itemCount,
+                        affectedRows: supplierData.affectedRows,
+                        sampleItems: supplierData.sampleItems,
+                        suggestions: suggestions.slice(0, 5), // Increased to top 5 suggestions
+                        status: 'pending'
+                    });
+                } else {
+                    console.log(`Supplier "${supplierName}" already resolved, skipping conflict`);
+                }
             } else {
                 // Exact match found - auto-resolve
                 this.dataResolutions.suppliers.set(supplierName, exactMatch);
+                console.log(`Auto-resolved supplier "${supplierName}" to existing supplier "${exactMatch.name}" (${supplierData.itemCount} items affected)`);
             }
         });
         
         // Check categories
-        uniqueCategories.forEach(categoryName => {
+        uniqueCategories.forEach((categoryData, categoryName) => {
+            // First check for exact case-insensitive match
             const exactMatch = this.existingCategories.find(c => 
-                c.name.toLowerCase() === categoryName.toLowerCase()
+                c.name.toLowerCase().trim() === categoryName.toLowerCase().trim()
             );
             
             if (!exactMatch) {
-                const suggestions = this.findSuggestions(categoryName, this.existingCategories, 'name');
-                conflicts.push({
-                    type: 'category',
-                    importValue: categoryName,
-                    suggestions: suggestions.slice(0, 3), // Top 3 suggestions
-                    status: 'pending'
-                });
+                // Check if already resolved (might have been resolved in a previous operation)
+                if (!this.dataResolutions.categories.has(categoryName)) {
+                    const suggestions = this.findSuggestions(categoryName, this.existingCategories, 'name');
+                    conflicts.push({
+                        type: 'category',
+                        importValue: categoryName,
+                        itemCount: categoryData.itemCount,
+                        affectedRows: categoryData.affectedRows,
+                        sampleItems: categoryData.sampleItems,
+                        suggestions: suggestions.slice(0, 5), // Increased to top 5 suggestions
+                        status: 'pending'
+                    });
+                } else {
+                    console.log(`Category "${categoryName}" already resolved, skipping conflict`);
+                }
             } else {
                 // Exact match found - auto-resolve
                 this.dataResolutions.categories.set(categoryName, exactMatch);
+                console.log(`Auto-resolved category "${categoryName}" to existing category "${exactMatch.name}" (${categoryData.itemCount} items affected)`);
             }
         });
         
-        this.pendingResolutions = conflicts;
-        console.log(`Found ${conflicts.length} data conflicts to resolve`);
-        return conflicts;
+        // Group similar conflicts together
+        const groupedConflicts = this.groupSimilarConflicts(conflicts);
+        
+        this.pendingResolutions = groupedConflicts;
+        console.log(`Found ${conflicts.length} individual conflicts, grouped into ${groupedConflicts.length} conflict groups`);
+        console.log('Auto-resolved suppliers:', Array.from(this.dataResolutions.suppliers.keys()));
+        console.log('Auto-resolved categories:', Array.from(this.dataResolutions.categories.keys()));
+        console.log('Grouped conflicts:', groupedConflicts.map(c => {
+            if (c.variants) {
+                return `${c.type}: "${c.importValue}" (${c.variants.length} variants, ${c.itemCount} total items)`;
+            }
+            return `${c.type}: "${c.importValue}" (${c.itemCount} items)`;
+        }));
+        return groupedConflicts;
+    }
+    
+    groupSimilarConflicts(conflicts) {
+        const groupedConflicts = [];
+        const processedIndices = new Set();
+        
+        for (let i = 0; i < conflicts.length; i++) {
+            if (processedIndices.has(i)) continue;
+            
+            const currentConflict = conflicts[i];
+            const similarConflicts = [];
+            
+            // Find all conflicts similar to current one (same type)
+            for (let j = i + 1; j < conflicts.length; j++) {
+                if (processedIndices.has(j)) continue;
+                if (conflicts[j].type !== currentConflict.type) continue;
+                
+                const similarity = this.calculateSimilarity(
+                    currentConflict.importValue.toLowerCase(),
+                    conflicts[j].importValue.toLowerCase()
+                );
+                
+                // Group if similarity is above 80%
+                if (similarity >= 0.8) {
+                    similarConflicts.push(conflicts[j]);
+                    processedIndices.add(j);
+                }
+            }
+            
+            if (similarConflicts.length > 0) {
+                // Create a grouped conflict
+                const allConflicts = [currentConflict, ...similarConflicts];
+                const groupedConflict = {
+                    type: currentConflict.type,
+                    importValue: currentConflict.importValue, // Use first variant as primary
+                    isGroup: true,
+                    variants: allConflicts.map(c => ({
+                        value: c.importValue,
+                        itemCount: c.itemCount,
+                        affectedRows: c.affectedRows,
+                        sampleItems: c.sampleItems
+                    })),
+                    itemCount: allConflicts.reduce((sum, c) => sum + c.itemCount, 0),
+                    affectedRows: allConflicts.reduce((all, c) => [...all, ...c.affectedRows], []),
+                    sampleItems: allConflicts.reduce((all, c) => {
+                        const newItems = c.sampleItems.filter(item => !all.includes(item));
+                        return [...all, ...newItems].slice(0, 5); // Limit to 5 samples
+                    }, []),
+                    suggestions: currentConflict.suggestions, // Use suggestions from primary variant
+                    status: 'pending'
+                };
+                
+                groupedConflicts.push(groupedConflict);
+            } else {
+                // Single conflict, no grouping needed
+                groupedConflicts.push(currentConflict);
+            }
+            
+            processedIndices.add(i);
+        }
+        
+        return groupedConflicts;
     }
     
     findSuggestions(importValue, existingData, field) {
         if (!importValue || !existingData.length) return [];
         
+        const importLower = importValue.toLowerCase().trim();
         const suggestions = existingData
-            .map(item => ({
-                item: item,
-                similarity: this.calculateSimilarity(importValue.toLowerCase(), item[field].toLowerCase())
-            }))
-            .filter(s => s.similarity > 0.3) // Minimum similarity threshold
+            .map(item => {
+                const itemValue = item[field].toLowerCase().trim();
+                let similarity = this.calculateSimilarity(importLower, itemValue);
+                
+                // Boost similarity for exact substring matches
+                if (itemValue.includes(importLower) || importLower.includes(itemValue)) {
+                    similarity += 0.3;
+                }
+                
+                // Boost similarity for word matches
+                const importWords = importLower.split(/\s+/);
+                const itemWords = itemValue.split(/\s+/);
+                let wordMatches = 0;
+                importWords.forEach(importWord => {
+                    itemWords.forEach(itemWord => {
+                        if (importWord === itemWord || 
+                            importWord.includes(itemWord) || 
+                            itemWord.includes(importWord)) {
+                            wordMatches++;
+                        }
+                    });
+                });
+                
+                if (wordMatches > 0) {
+                    similarity += (wordMatches / Math.max(importWords.length, itemWords.length)) * 0.4;
+                }
+                
+                // Cap similarity at 1.0
+                similarity = Math.min(similarity, 1.0);
+                
+                return {
+                    item: item,
+                    similarity: similarity
+                };
+            })
+            .filter(s => s.similarity > 0.2) // Lower threshold to catch more potential matches
             .sort((a, b) => b.similarity - a.similarity)
             .map(s => s.item);
             
@@ -1237,11 +1557,30 @@ class BulkImportManager {
         const supplierConflicts = conflicts.filter(c => c.type === 'supplier');
         const categoryConflicts = conflicts.filter(c => c.type === 'category');
         
+        // Calculate total affected items
+        const totalAffectedItems = conflicts.reduce((sum, conflict) => sum + (conflict.itemCount || 1), 0);
+        
         let html = `
             <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle"></i>
-                <strong>Data Validation Required</strong>
-                <p class="mb-0 mt-2">Found ${conflicts.length} data conflicts that need your attention. Please resolve each one below:</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Data Validation Required</strong>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">
+                            <i class="fas fa-boxes"></i> ${totalAffectedItems} items affected
+                        </small>
+                    </div>
+                </div>
+                <p class="mb-0 mt-2">
+                    Found ${conflicts.length} data conflicts affecting ${totalAffectedItems} items. 
+                    Resolving these conflicts will apply to all affected items in bulk.
+                </p>
+            </div>
+            
+            <div class="progress mb-3" style="height: 8px;">
+                <div class="progress-bar bg-success" role="progressbar" style="width: 0%" id="conflictProgressBar"></div>
             </div>
         `;
         
@@ -1296,20 +1635,38 @@ class BulkImportManager {
             return;
         }
         
-        // Store the resolution
-        if (conflict.type === 'supplier') {
-            this.dataResolutions.suppliers.set(conflict.importValue, targetData);
+        // Handle grouped conflicts - store resolution for all variants
+        if (conflict.isGroup && conflict.variants) {
+            conflict.variants.forEach(variant => {
+                if (conflict.type === 'supplier') {
+                    this.dataResolutions.suppliers.set(variant.value, targetData);
+                } else {
+                    this.dataResolutions.categories.set(variant.value, targetData);
+                }
+            });
         } else {
-            this.dataResolutions.categories.set(conflict.importValue, targetData);
+            // Single conflict resolution
+            if (conflict.type === 'supplier') {
+                this.dataResolutions.suppliers.set(conflict.importValue, targetData);
+            } else {
+                this.dataResolutions.categories.set(conflict.importValue, targetData);
+            }
         }
         
         // Mark as resolved and remove from pending
         this.pendingResolutions.splice(index, 1);
         
         // Update UI
-        this.markConflictResolved(index, `Mapped to "${targetName}"`);
+        this.markConflictResolved(index, `Mapped to "${targetName}"`, conflict.itemCount);
         
-        showToast(`"${conflict.importValue}" mapped to existing ${conflict.type} "${targetName}"`, 'success');
+        const itemCountText = conflict.itemCount ? ` (${conflict.itemCount} items)` : '';
+        const conflictText = conflict.isGroup ? 
+            `${conflict.variants.length} similar ${conflict.type}s` : 
+            `"${conflict.importValue}"`;
+        showToast(`${conflictText} mapped to existing ${conflict.type} "${targetName}"${itemCountText}`, 'success');
+        
+        // Check if all conflicts are resolved
+        this.checkIfAllConflictsResolved();
     }
     
     async resolveConflictByCreating(index) {
@@ -1317,13 +1674,53 @@ class BulkImportManager {
         if (!conflict) return;
         
         try {
+            // Before creating, check if the item was already resolved or if it actually exists
+            const existingResolution = conflict.type === 'supplier' 
+                ? this.dataResolutions.suppliers.get(conflict.importValue)
+                : this.dataResolutions.categories.get(conflict.importValue);
+                
+            if (existingResolution) {
+                console.log(`Conflict "${conflict.importValue}" already resolved, using existing resolution`);
+                // Mark as resolved and remove from pending
+                this.pendingResolutions.splice(index, 1);
+                this.markConflictResolved(index, `Already resolved to "${existingResolution.name}"`, conflict.itemCount);
+                this.checkIfAllConflictsResolved();
+                return;
+            }
+            
+            // Double-check if the item actually exists (case-insensitive)
+            const existingItems = conflict.type === 'supplier' ? this.existingSuppliers : this.existingCategories;
+            const exactMatch = existingItems.find(item => 
+                item.name.toLowerCase() === conflict.importValue.toLowerCase()
+            );
+            
+            if (exactMatch) {
+                console.log(`Found existing ${conflict.type} "${exactMatch.name}" for import value "${conflict.importValue}" - auto-resolving`);
+                // Store the resolution
+                if (conflict.type === 'supplier') {
+                    this.dataResolutions.suppliers.set(conflict.importValue, exactMatch);
+                } else {
+                    this.dataResolutions.categories.set(conflict.importValue, exactMatch);
+                }
+                
+                // Mark as resolved and remove from pending
+                this.pendingResolutions.splice(index, 1);
+                this.markConflictResolved(index, `Mapped to existing "${exactMatch.name}"`, conflict.itemCount);
+                this.checkIfAllConflictsResolved();
+                return;
+            }
+            
             let newData;
             
+            // Handle grouped conflicts - create new item using primary variant name
+            const nameToCreate = conflict.isGroup ? conflict.importValue : conflict.importValue;
+            
             if (conflict.type === 'supplier') {
-                // Create new supplier
+                // Generate unique code for supplier
+                const supplierCode = await this.generateUniqueSupplierCode(nameToCreate);
                 const supplierData = {
-                    name: conflict.importValue,
-                    code: this.generateSupplierCode(conflict.importValue),
+                    name: nameToCreate,
+                    code: supplierCode,
                     color: this.generateRandomColor(),
                     contactEmail: '',
                     contactPhone: '',
@@ -1332,50 +1729,142 @@ class BulkImportManager {
                 
                 newData = await inventoryDB.addSupplier(supplierData);
                 this.existingSuppliers.push(newData);
-                this.dataResolutions.suppliers.set(conflict.importValue, newData);
+                
+                // Map all variants to the new supplier if grouped
+                if (conflict.isGroup && conflict.variants) {
+                    conflict.variants.forEach(variant => {
+                        this.dataResolutions.suppliers.set(variant.value, newData);
+                    });
+                } else {
+                    this.dataResolutions.suppliers.set(conflict.importValue, newData);
+                }
                 
             } else {
-                // Create new category
+                // Generate unique code for category
+                const categoryCode = await this.generateUniqueCategoryCode(nameToCreate);
                 const categoryData = {
-                    name: conflict.importValue,
-                    code: this.generateCategoryCode(conflict.importValue),
+                    name: nameToCreate,
+                    code: categoryCode,
                     description: `Auto-created during bulk import`,
                     isDefault: false
                 };
                 
                 newData = await inventoryDB.addCategory(categoryData);
                 this.existingCategories.push(newData);
-                this.dataResolutions.categories.set(conflict.importValue, newData);
+                
+                // Map all variants to the new category if grouped
+                if (conflict.isGroup && conflict.variants) {
+                    conflict.variants.forEach(variant => {
+                        this.dataResolutions.categories.set(variant.value, newData);
+                    });
+                } else {
+                    this.dataResolutions.categories.set(conflict.importValue, newData);
+                }
             }
             
             // Mark as resolved and remove from pending
             this.pendingResolutions.splice(index, 1);
             
             // Update UI
-            this.markConflictResolved(index, `Created new ${conflict.type}`);
+            this.markConflictResolved(index, `Created new ${conflict.type}`, conflict.itemCount);
             
-            showToast(`Created new ${conflict.type} "${conflict.importValue}"`, 'success');
+            const itemCountText = conflict.itemCount ? ` (${conflict.itemCount} items affected)` : '';
+            const conflictText = conflict.isGroup ? 
+                `new ${conflict.type} "${nameToCreate}" for ${conflict.variants.length} similar variants` : 
+                `new ${conflict.type} "${conflict.importValue}"`;
+            showToast(`Created ${conflictText}${itemCountText}`, 'success');
+            
+            // Check if all conflicts are resolved
+            this.checkIfAllConflictsResolved();
             
         } catch (error) {
             console.error('Error creating new data:', error);
-            showToast(`Error creating new ${conflict.type}: ${error.message}`, 'error');
+            
+            // Handle specific database errors
+            let errorMessage = error.message;
+            if (error.message.includes('already exist')) {
+                errorMessage = `A ${conflict.type} with this name or code already exists. Please try mapping to an existing ${conflict.type} instead.`;
+            }
+            
+            showToast(`Error creating new ${conflict.type}: ${errorMessage}`, 'error');
         }
     }
     
-    markConflictResolved(index, resolution) {
+    markConflictResolved(index, resolution, itemCount = null) {
         const conflictCard = document.getElementById(`conflict-${index}`);
         if (conflictCard) {
+            const itemCountText = itemCount ? ` (${itemCount} items affected)` : '';
             conflictCard.innerHTML = `
                 <div class="card-body text-center">
                     <div class="text-success mb-2">
                         <i class="fas fa-check-circle fa-2x"></i>
                     </div>
                     <h6 class="card-title text-success">Resolved</h6>
-                    <p class="card-text small text-muted">${resolution}</p>
+                    <p class="card-text small text-muted">${resolution}${itemCountText}</p>
                 </div>
             `;
             conflictCard.classList.add('border-success');
         }
+        
+        // Update progress bar
+        this.updateConflictProgress();
+    }
+    
+    updateConflictProgress() {
+        const progressBar = document.getElementById('conflictProgressBar');
+        if (!progressBar || !this.pendingResolutions) return;
+        
+        const totalConflicts = this.pendingResolutions.length + this.getResolvedConflictCount();
+        const resolvedConflicts = this.getResolvedConflictCount();
+        const progressPercentage = totalConflicts > 0 ? Math.round((resolvedConflicts / totalConflicts) * 100) : 0;
+        
+        progressBar.style.width = `${progressPercentage}%`;
+        progressBar.setAttribute('aria-valuenow', progressPercentage);
+        progressBar.textContent = `${progressPercentage}%`;
+        
+        // If all conflicts are resolved, show completion state
+        if (progressPercentage === 100) {
+            progressBar.classList.remove('bg-success');
+            progressBar.classList.add('bg-primary');
+        }
+    }
+    
+    getResolvedConflictCount() {
+        // Count resolved conflicts based on data resolution maps
+        return (this.dataResolutions?.suppliers?.size || 0) + (this.dataResolutions?.categories?.size || 0);
+    }
+    
+    checkIfAllConflictsResolved() {
+        if (this.pendingResolutions.length === 0) {
+            // All conflicts resolved - show success message and enable final import
+            const conflictsContainer = document.getElementById('dataConflicts');
+            if (conflictsContainer) {
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success mt-3';
+                successAlert.innerHTML = `
+                    <i class="fas fa-check-circle"></i>
+                    <strong>All Conflicts Resolved!</strong>
+                    <p class="mb-0 mt-2">
+                        Great! All data conflicts have been resolved. You can now proceed to import your items.
+                    </p>
+                `;
+                conflictsContainer.appendChild(successAlert);
+            }
+            
+            // Enable the final import button
+            const finalImportBtn = document.getElementById('finalImportBtn');
+            if (finalImportBtn) {
+                finalImportBtn.disabled = false;
+                finalImportBtn.classList.remove('btn-secondary');
+                finalImportBtn.classList.add('btn-primary');
+            }
+            
+            // Update step indicator if available
+            this.updateStepIndicator(3, 'completed');
+            
+            return true;
+        }
+        return false;
     }
     
     generateSupplierCode(name) {
@@ -1384,10 +1873,56 @@ class BulkImportManager {
         return code || 'SUP' + Date.now().toString().substr(-5);
     }
     
+    async generateUniqueSupplierCode(name) {
+        let baseCode = name.replace(/[^a-zA-Z0-9]/g, '').substr(0, 6).toUpperCase();
+        if (!baseCode) {
+            baseCode = 'SUP';
+        }
+        
+        // Check if the base code already exists
+        let code = baseCode;
+        let counter = 1;
+        
+        while (this.existingSuppliers.some(s => s.code === code)) {
+            code = baseCode + counter.toString().padStart(2, '0');
+            counter++;
+            if (counter > 99) {
+                // Fallback to timestamp if we somehow exceed 99
+                code = baseCode + Date.now().toString().substr(-3);
+                break;
+            }
+        }
+        
+        return code;
+    }
+    
     generateCategoryCode(name) {
         // Generate a simple code from the category name
         const code = name.replace(/[^a-zA-Z0-9]/g, '').substr(0, 8).toUpperCase();
         return code || 'CAT' + Date.now().toString().substr(-5);
+    }
+    
+    async generateUniqueCategoryCode(name) {
+        let baseCode = name.replace(/[^a-zA-Z0-9]/g, '').substr(0, 6).toUpperCase();
+        if (!baseCode) {
+            baseCode = 'CAT';
+        }
+        
+        // Check if the base code already exists
+        let code = baseCode;
+        let counter = 1;
+        
+        while (this.existingCategories.some(c => c.code === code)) {
+            code = baseCode + counter.toString().padStart(2, '0');
+            counter++;
+            if (counter > 99) {
+                // Fallback to timestamp if we somehow exceed 99
+                code = baseCode + Date.now().toString().substr(-3);
+                break;
+            }
+        }
+        
+        return code;
     }
     
     generateRandomColor() {
@@ -1399,41 +1934,106 @@ class BulkImportManager {
     }
     
     renderConflictCard(conflict, index) {
-        const suggestionsHtml = conflict.suggestions.map(suggestion => 
-            `<button class="btn btn-sm btn-outline-primary me-1 mb-1 suggestion-btn" 
-                     data-index="${index}" 
-                     data-action="map" 
-                     data-target="${suggestion.name}" 
-                     data-target-code="${suggestion.code || suggestion.id}">
-                ${suggestion.name}
-            </button>`
-        ).join('');
+        const itemCountBadge = conflict.itemCount ? `<span class="badge bg-secondary ms-2">${conflict.itemCount} items</span>` : '';
+        const affectedRowsText = conflict.affectedRows ? conflict.affectedRows.slice(0, 5).join(', ') + (conflict.affectedRows.length > 5 ? '...' : '') : '';
+        const sampleItemsText = conflict.sampleItems ? conflict.sampleItems.slice(0, 3).join(', ') + (conflict.sampleItems.length > 3 ? '...' : '') : '';
+        
+        // Show best suggestion as default option
+        const bestSuggestion = conflict.suggestions.length > 0 ? conflict.suggestions[0] : null;
+        
+        // Handle grouped conflicts
+        const isGrouped = conflict.isGroup && conflict.variants;
+        const variantsDisplay = isGrouped ? 
+            conflict.variants.map(v => `"${v.value}" (${v.itemCount} items)`).join(', ') : '';
         
         return `
             <div class="col-md-6 mb-3">
-                <div class="card" id="conflict-${index}">
+                <div class="card conflict-resolution-card" id="conflict-${index}">
                     <div class="card-body">
-                        <h6 class="card-title text-warning">
-                            <i class="fas fa-question-circle"></i> 
-                            "${conflict.importValue}"
+                        <h6 class="card-title text-warning d-flex align-items-center">
+                            <i class="fas fa-${isGrouped ? 'layer-group' : 'question-circle'} me-2"></i> 
+                            ${isGrouped ? `Similar ${conflict.type}s grouped` : `"${conflict.importValue}"`}
+                            ${itemCountBadge}
+                            ${isGrouped ? `<span class="badge bg-info ms-2">${conflict.variants.length} variants</span>` : ''}
                         </h6>
-                        <p class="card-text small text-muted">
-                            This ${conflict.type} doesn't exist in your system. What would you like to do?
+                        
+                        ${isGrouped ? `
+                            <div class="alert alert-warning py-2 mb-2">
+                                <small>
+                                    <strong>Grouped Similar Items:</strong><br>
+                                    ${conflict.variants.map(v => `• "${v.value}" (${v.itemCount} items)`).join('<br>')}
+                                </small>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-secondary" data-index="${index}" data-action="split-group">
+                                        <i class="fas fa-unlink me-1"></i>Split & Resolve Separately
+                                    </button>
+                                </div>
+                            </div>
+                        ` : `
+                            ${conflict.itemCount && conflict.itemCount > 1 ? `
+                                <div class="alert alert-info py-2 mb-2">
+                                    <small>
+                                        <strong>Bulk Resolution:</strong> This will affect ${conflict.itemCount} items
+                                        ${affectedRowsText ? ` (rows: ${affectedRowsText})` : ''}
+                                    </small>
+                                    ${sampleItemsText ? `<br><small class="text-muted">Sample items: ${sampleItemsText}</small>` : ''}
+                                </div>
+                            ` : ''}
+                        `}
+                        
+                        <p class="card-text small text-muted mb-3">
+                            ${isGrouped ? 
+                                `These similar ${conflict.type}s don't exist. Choose how to resolve all ${conflict.itemCount} affected items:` :
+                                `This ${conflict.type} doesn't exist. Choose how to resolve ${conflict.itemCount ? `all ${conflict.itemCount} affected items` : 'this item'}:`
+                            }
                         </p>
                         
-                        ${conflict.suggestions.length > 0 ? `
-                            <div class="mb-2">
-                                <small class="fw-bold">Similar existing ${conflict.type}s:</small><br>
-                                ${suggestionsHtml}
+                        <!-- Resolution Options -->
+                        <div class="resolution-options">
+                            ${bestSuggestion ? `
+                                <!-- Best Match Option -->
+                                <div class="resolution-option mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold text-primary">Best Match Found:</span>
+                                        <span class="badge bg-primary">Recommended</span>
+                                    </div>
+                                    <button class="btn btn-outline-primary w-100 text-start best-match-btn" 
+                                            data-index="${index}" 
+                                            data-action="map" 
+                                            data-target="${bestSuggestion.name}" 
+                                            data-target-code="${bestSuggestion.code || bestSuggestion.id}">
+                                        <i class="fas fa-link me-2"></i>
+                                        Map to "${bestSuggestion.name}"
+                                    </button>
+                                </div>
+                            ` : ''}
+                            
+                            <!-- Custom Search Option -->
+                            <div class="resolution-option mb-3">
+                                <div class="mb-2">
+                                    <span class="fw-bold">Search & Map to Existing:</span>
+                                </div>
+                                <div class="autocomplete-container position-relative">
+                                    <input type="text" 
+                                           class="form-control autocomplete-input" 
+                                           placeholder="Type to search existing ${conflict.type}s..." 
+                                           data-index="${index}" 
+                                           data-type="${conflict.type}" 
+                                           autocomplete="off">
+                                    <div class="autocomplete-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom" 
+                                         style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;"></div>
+                                </div>
                             </div>
-                        ` : ''}
-                        
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-success btn-sm" 
-                                    data-index="${index}" 
-                                    data-action="create">
-                                <i class="fas fa-plus"></i> Create New ${conflict.type}
-                            </button>
+                            
+                            <!-- Create New Option -->
+                            <div class="resolution-option">
+                                <button class="btn btn-success w-100" 
+                                        data-index="${index}" 
+                                        data-action="create">
+                                    <i class="fas fa-plus me-2"></i>
+                                    Create New ${conflict.type} "${conflict.importValue}"
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

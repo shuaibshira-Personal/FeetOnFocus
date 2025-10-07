@@ -302,23 +302,7 @@ class FeetOnFocusApp {
             }
         }, 15 * 60 * 1000); // 15 minutes
         
-        // Set up daily file export (every 4 hours, but only creates one per day)
-        this.dailyExportInterval = setInterval(async () => {
-            if (this.initialized) {
-                try {
-                    console.log('📁 Checking for daily file export...');
-                    const fileName = await inventoryDB.createDailyFileExport();
-                    if (fileName) {
-                        console.log('✅ Daily file export completed:', fileName);
-                    }
-                } catch (error) {
-                    console.error('❌ Daily file export failed:', error);
-                }
-            }
-        }, 4 * 60 * 60 * 1000); // Every 4 hours (but only exports once per day)
-        
         console.log('⏰ Periodic auto backup set up (every 15 minutes)');
-        console.log('📁 Daily file export set up (checked every 4 hours)');
         
         // Also run first backup after 1 minute (to avoid overwhelming on startup)
         setTimeout(async () => {
@@ -333,20 +317,6 @@ class FeetOnFocusApp {
             }
         }, 60 * 1000); // 1 minute after startup
         
-        // Run initial daily export check after 2 minutes
-        setTimeout(async () => {
-            if (this.initialized) {
-                try {
-                    console.log('📁 Running initial daily export check...');
-                    const fileName = await inventoryDB.createDailyFileExport();
-                    if (fileName) {
-                        console.log('✅ Initial daily file export completed:', fileName);
-                    }
-                } catch (error) {
-                    console.error('❌ Initial daily file export failed:', error);
-                }
-            }
-        }, 2 * 60 * 1000); // 2 minutes after startup
     }
 
     /**
@@ -356,10 +326,6 @@ class FeetOnFocusApp {
         if (this.autoBackupInterval) {
             clearInterval(this.autoBackupInterval);
             console.log('🛑 Periodic auto backup stopped');
-        }
-        if (this.dailyExportInterval) {
-            clearInterval(this.dailyExportInterval);
-            console.log('🛑 Daily file export stopped');
         }
     }
 }
