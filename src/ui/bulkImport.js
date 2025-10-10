@@ -2823,7 +2823,7 @@ class BulkImportManager {
                                 <td>${category}</td>
                                 <td>${supplier}</td>
                                 <td>${quantity}</td>
-                                <td>$${costPrice.toFixed(2)}</td>
+                                <td>R${costPrice.toFixed(2)}</td>
                                 <td>${description.length > 50 ? description.substring(0, 50) + '...' : description}</td>
                             </tr>
                         `;
@@ -2905,9 +2905,9 @@ class BulkImportManager {
         }
         
         const num = Number(amount) || 0;
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('en-ZA', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'ZAR',
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }).format(num);
