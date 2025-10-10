@@ -299,18 +299,62 @@ class BulkImportManager {
     }
     
     setupConflictResolutionListeners() {
+        console.log('Setting up conflict resolution listeners...');
         // Add event delegation for dynamically created conflict resolution buttons
         document.addEventListener('click', (e) => {
+            // Check if the conflict is already resolved
+            const conflictCard = e.target.closest('.conflict-resolution-card');
+            if (conflictCard && conflictCard.dataset.resolved === 'true') {
+                console.log('Conflict already resolved, ignoring interaction');
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            
             if (e.target.matches('[data-action="map"]') || e.target.closest('[data-action="map"]')) {
                 const button = e.target.matches('[data-action="map"]') ? e.target : e.target.closest('[data-action="map"]');
                 const index = parseInt(button.dataset.index);
                 const targetName = button.dataset.target;
                 const targetCode = button.dataset.targetCode;
-                this.resolveConflictByMapping(index, targetName, targetCode);
+                
+                // Double-check the conflict hasn't been resolved already
+                if (this.pendingResolutions[index]) {
+                    this.resolveConflictByMapping(index, targetName, targetCode);
+                } else {
+                    console.warn(`Conflict at index ${index} no longer exists`);
+                }
             } else if (e.target.matches('[data-action="create"]') || e.target.closest('[data-action="create"]')) {
                 const button = e.target.matches('[data-action="create"]') ? e.target : e.target.closest('[data-action="create"]');
                 const index = parseInt(button.dataset.index);
-                this.resolveConflictByCreating(index);
+                if (this.pendingResolutions[index]) {
+                    this.resolveConflictByCreating(index);
+                } else {
+                    console.warn(`Conflict at index ${index} no longer exists`);
+                }
+            } else if (e.target.matches('[data-action="map-selected"]') || e.target.closest('[data-action="map-selected"]')) {
+                const button = e.target.matches('[data-action="map-selected"]') ? e.target : e.target.closest('[data-action="map-selected"]');
+                const index = parseInt(button.dataset.index);
+                if (this.pendingResolutions[index]) {
+                    this.resolveConflictByMappingFromInput(index);
+                } else {
+                    console.warn(`Conflict at index ${index} no longer exists`);
+                }
+            } else if (e.target.matches('[data-action="create-from-input"]') || e.target.closest('[data-action="create-from-input"]')) {
+                const button = e.target.matches('[data-action="create-from-input"]') ? e.target : e.target.closest('[data-action="create-from-input"]');
+                const index = parseInt(button.dataset.index);
+                if (this.pendingResolutions[index]) {
+                    this.resolveConflictByCreatingFromInput(index);
+                } else {
+                    console.warn(`Conflict at index ${index} no longer exists`);
+                }
+            } else if (e.target.matches('[data-action="edit-create"]') || e.target.closest('[data-action="edit-create"]')) {
+                const button = e.target.matches('[data-action="edit-create"]') ? e.target : e.target.closest('[data-action="edit-create"]');
+                const index = parseInt(button.dataset.index);
+                if (this.pendingResolutions[index]) {
+                    this.showEditCreateModal(index);
+                } else {
+                    console.warn(`Conflict at index ${index} no longer exists`);
+                }
             }
             // Handle split group action
             else if (e.target.matches('[data-action="split-group"]') || e.target.closest('[data-action="split-group"]')) {
@@ -320,7 +364,15 @@ class BulkImportManager {
             }
             // Handle autocomplete suggestion clicks
             else if (e.target.matches('.autocomplete-suggestion-item')) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Autocomplete suggestion item clicked');
                 this.handleAutocompleteSuggestionClick(e.target);
+            } else if (e.target.closest('.autocomplete-suggestion-item')) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Click inside autocomplete suggestion item (using closest)');
+                this.handleAutocompleteSuggestionClick(e.target.closest('.autocomplete-suggestion-item'));
             }
         });
         
@@ -339,7 +391,7 @@ class BulkImportManager {
                     if (suggestionsContainer) {
                         suggestionsContainer.style.display = 'none';
                     }
-                }, 200); // Small delay to allow clicking on suggestions
+                }, 300); // Longer delay to allow clicking on suggestions
             }
         });
     }
@@ -417,6 +469,34 @@ class BulkImportManager {
         
         suggestionsContainer.innerHTML = suggestionsHtml;
         suggestionsContainer.style.display = 'block';
+        
+        // Enable create button with current input value
+        const createButton = input.closest('.conflict-resolution-card').querySelector('[data-action="create-from-input"]');
+        if (createButton && query.length >= 2) {
+            createButton.disabled = false;
+            createButton.classList.remove('btn-outline-secondary');
+            createButton.classList.add('btn-primary');
+            createButton.innerHTML = `<i class="fas fa-plus"></i> Create "${query}"`;
+        }
+        
+        // Check if input matches an existing item exactly to enable map button
+        const exactMatch = matches.find(item => item.name.toLowerCase() === query.toLowerCase());
+        const mapButton = input.closest('.conflict-resolution-card').querySelector('[data-action="map-selected"]');
+        if (mapButton) {
+            if (exactMatch) {
+                input.dataset.selectedName = exactMatch.name;
+                input.dataset.selectedCode = exactMatch.code || exactMatch.id;
+                mapButton.disabled = false;
+                mapButton.classList.remove('btn-outline-secondary');
+                mapButton.classList.add('btn-success');
+                mapButton.innerHTML = `<i class="fas fa-link"></i> Map to "${exactMatch.name}"`;
+            } else {
+                mapButton.disabled = true;
+                mapButton.classList.remove('btn-success');
+                mapButton.classList.add('btn-outline-secondary');
+                mapButton.innerHTML = `<i class="fas fa-link"></i> Map to Selected`;
+            }
+        }
     }
     
     highlightMatch(text, query) {
@@ -425,22 +505,540 @@ class BulkImportManager {
     }
     
     handleAutocompleteSuggestionClick(suggestionElement) {
+        console.log('Autocomplete suggestion clicked:', suggestionElement);
+        
         const index = parseInt(suggestionElement.dataset.index);
         const name = suggestionElement.dataset.name;
         const code = suggestionElement.dataset.code;
+        
+        console.log('Suggestion data:', { index, name, code });
         
         // Hide suggestions
         const suggestionsContainer = suggestionElement.parentElement;
         suggestionsContainer.style.display = 'none';
         
-        // Clear the input
+        // Fill the input with the selected value
         const input = suggestionsContainer.parentElement.querySelector('.autocomplete-input');
+        console.log('Found input element:', input);
         if (input) {
-            input.value = '';
+            console.log('Setting input value to:', name);
+            input.value = name;
+            
+            // Store the selected item data for potential mapping
+            input.dataset.selectedName = name;
+            input.dataset.selectedCode = code;
+            
+            console.log('Looking for buttons in conflict card...');
+            const conflictCard = input.closest('.conflict-resolution-card');
+            console.log('Conflict card found:', conflictCard);
+            
+            // Enable any "Map to Selected" button for this conflict
+            const mapButton = conflictCard?.querySelector('[data-action="map-selected"]');
+            console.log('Map button found:', mapButton);
+            if (mapButton) {
+                mapButton.disabled = false;
+                mapButton.classList.remove('btn-outline-secondary');
+                mapButton.classList.add('btn-success');
+                mapButton.innerHTML = `<i class="fas fa-link"></i> Map to "${name}"`;
+                console.log('Map button updated');
+            }
+            
+            // Enable any "Create New" button to use this value
+            const createButton = conflictCard?.querySelector('[data-action="create-from-input"]');
+            console.log('Create button found:', createButton);
+            if (createButton) {
+                createButton.disabled = false;
+                createButton.classList.remove('btn-outline-secondary');
+                createButton.classList.add('btn-primary');
+                createButton.innerHTML = `<i class="fas fa-plus"></i> Create "${name}"`;
+                console.log('Create button updated');
+            }
+        } else {
+            console.error('Input element not found!');
+        }
+    }
+    
+    async resolveConflictByMappingFromInput(index) {
+        const conflict = this.pendingResolutions[index];
+        if (!conflict) return;
+        
+        // Get the autocomplete input for this conflict
+        const conflictCard = document.getElementById(`conflict-${index}`);
+        const input = conflictCard?.querySelector('.autocomplete-input');
+        
+        if (!input || !input.dataset.selectedName) {
+            showToast('Please select a valid item from the suggestions first', 'warning');
+            return;
         }
         
-        // Resolve the conflict
-        this.resolveConflictByMapping(index, name, code);
+        const targetName = input.dataset.selectedName;
+        const targetCode = input.dataset.selectedCode;
+        
+        this.resolveConflictByMapping(index, targetName, targetCode);
+    }
+    
+    async resolveConflictByCreatingFromInput(index) {
+        const conflict = this.pendingResolutions[index];
+        if (!conflict) return;
+        
+        // Get the autocomplete input for this conflict
+        const conflictCard = document.getElementById(`conflict-${index}`);
+        const input = conflictCard?.querySelector('.autocomplete-input');
+        
+        if (!input || !input.value.trim()) {
+            showToast('Please enter a name for the new item', 'warning');
+            return;
+        }
+        
+        const nameToCreate = input.value.trim();
+        
+        // Check if this name already exists
+        const existingItems = conflict.type === 'supplier' ? this.existingSuppliers : this.existingCategories;
+        const exactMatch = existingItems.find(item => 
+            item.name.toLowerCase() === nameToCreate.toLowerCase()
+        );
+        
+        if (exactMatch) {
+            // If it already exists, just map to it instead
+            this.resolveConflictByMapping(index, exactMatch.name, exactMatch.code || exactMatch.id);
+            return;
+        }
+        
+        // Create the new item using the input value
+        try {
+            let newData;
+            
+            if (conflict.type === 'supplier') {
+                const supplierCode = await this.generateUniqueSupplierCode(nameToCreate);
+                const supplierData = {
+                    name: nameToCreate,
+                    code: supplierCode,
+                    color: this.generateRandomColor(),
+                    contactEmail: '',
+                    contactPhone: '',
+                    address: ''
+                };
+                
+                newData = await inventoryDB.addSupplier(supplierData);
+                this.existingSuppliers.push(newData);
+                
+                // Map all variants to the new supplier if grouped
+                if (conflict.isGroup && conflict.variants) {
+                    conflict.variants.forEach(variant => {
+                        this.dataResolutions.suppliers.set(variant.value, newData);
+                    });
+                } else {
+                    this.dataResolutions.suppliers.set(conflict.importValue, newData);
+                }
+                
+            } else {
+                const categoryCode = await this.generateUniqueCategoryCode(nameToCreate);
+                const categoryData = {
+                    name: nameToCreate,
+                    code: categoryCode,
+                    description: `Created during bulk import`,
+                    isDefault: false
+                };
+                
+                newData = await inventoryDB.addCategory(categoryData);
+                this.existingCategories.push(newData);
+                
+                // Map all variants to the new category if grouped
+                if (conflict.isGroup && conflict.variants) {
+                    conflict.variants.forEach(variant => {
+                        this.dataResolutions.categories.set(variant.value, newData);
+                    });
+                } else {
+                    this.dataResolutions.categories.set(conflict.importValue, newData);
+                }
+            }
+            
+            // Mark as resolved and remove from pending
+            this.pendingResolutions.splice(index, 1);
+            
+            // Update UI
+            this.markConflictResolved(index, `Created new ${conflict.type}`, conflict.itemCount);
+            
+            const itemCountText = conflict.itemCount ? ` (${conflict.itemCount} items affected)` : '';
+            showToast(`Created new ${conflict.type} "${nameToCreate}"${itemCountText}`, 'success');
+            
+            // Check if all conflicts are resolved
+            this.checkIfAllConflictsResolved();
+            
+        } catch (error) {
+            console.error('Error creating new data from input:', error);
+            
+            let errorMessage = error.message;
+            if (error.message.includes('already exist')) {
+                errorMessage = `A ${conflict.type} with this name or code already exists.`;
+            }
+            
+            showToast(`Error creating new ${conflict.type}: ${errorMessage}`, 'error');
+        }
+    }
+    
+    async showEditCreateModal(index) {
+        const conflict = this.pendingResolutions[index];
+        if (!conflict) return;
+        
+        const isSupplier = conflict.type === 'supplier';
+        const nameToCreate = conflict.importValue;
+        
+        // Generate default values
+        const defaultCode = isSupplier ? 
+            await this.generateUniqueSupplierCode(nameToCreate) :
+            await this.generateUniqueCategoryCode(nameToCreate);
+        const defaultColor = this.generateRandomColor();
+        
+        // Create and show the edit modal
+        const modalId = `editCreate${conflict.type}Modal${index}`;
+        const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-${isSupplier ? 'building' : 'tags'}"></i>
+                                Create New ${isSupplier ? 'Supplier' : 'Category'}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editCreate${conflict.type}Form${index}">
+                                <div class="mb-3">
+                                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editCreateName${index}" value="${nameToCreate}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Code <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editCreateCode${index}" value="${defaultCode}" required>
+                                    <div class="form-text">Must be unique</div>
+                                </div>
+                                ${isSupplier ? `
+                                    <div class="mb-3">
+                                        <label class="form-label">Badge Color</label>
+                                        <div class="d-flex align-items-center">
+                                            <input type="color" class="form-control form-control-color" id="editCreateColor${index}" value="${defaultColor}" style="width: 60px; height: 38px;">
+                                            <div class="ms-3">
+                                                <span class="badge" id="colorPreview${index}" style="background-color: ${defaultColor}; color: white;">${nameToCreate}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Contact Email</label>
+                                        <input type="email" class="form-control" id="editCreateEmail${index}" placeholder="contact@supplier.com">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Contact Phone</label>
+                                        <input type="tel" class="form-control" id="editCreatePhone${index}" placeholder="+1 234 567 8900">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Website</label>
+                                        <input type="url" class="form-control" id="editCreateWebsite${index}" placeholder="https://supplier.com">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Address</label>
+                                        <textarea class="form-control" id="editCreateAddress${index}" rows="2" placeholder="Street address, City, State, ZIP"></textarea>
+                                    </div>
+                                ` : `
+                                    <div class="mb-3">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control" id="editCreateDescription${index}" rows="2" placeholder="Category description">Created during bulk import</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Color</label>
+                                        <div class="d-flex align-items-center">
+                                            <input type="color" class="form-control form-control-color" id="editCreateColor${index}" value="${defaultColor}" style="width: 60px; height: 38px;">
+                                            <div class="ms-3">
+                                                <span class="badge" id="colorPreview${index}" style="background-color: ${defaultColor}; color: white;">${nameToCreate}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `}
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" id="confirmCreateBtn${index}">
+                                <i class="fas fa-plus me-2"></i>Create ${isSupplier ? 'Supplier' : 'Category'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove any existing modal
+        const existingModal = document.getElementById(modalId);
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Set up event listeners
+        const modal = new bootstrap.Modal(document.getElementById(modalId));
+        const colorInput = document.getElementById(`editCreateColor${index}`);
+        const colorPreview = document.getElementById(`colorPreview${index}`);
+        const nameInput = document.getElementById(`editCreateName${index}`);
+        const confirmBtn = document.getElementById(`confirmCreateBtn${index}`);
+        
+        // Color preview updates
+        colorInput.addEventListener('input', () => {
+            const color = colorInput.value;
+            colorPreview.style.backgroundColor = color;
+            // Calculate if we need light or dark text
+            const rgb = this.hexToRgb(color);
+            const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+            colorPreview.style.color = brightness > 155 ? 'black' : 'white';
+        });
+        
+        // Name updates preview
+        nameInput.addEventListener('input', () => {
+            colorPreview.textContent = nameInput.value || 'Preview';
+        });
+        
+        // Confirm button
+        confirmBtn.addEventListener('click', async () => {
+            const name = document.getElementById(`editCreateName${index}`).value.trim();
+            const code = document.getElementById(`editCreateCode${index}`).value.trim();
+            const color = document.getElementById(`editCreateColor${index}`).value;
+            
+            if (!name || !code) {
+                showToast('Name and code are required', 'error');
+                return;
+            }
+            
+            // Check for existing items with same name or code
+            const existingItems = isSupplier ? this.existingSuppliers : this.existingCategories;
+            const nameExists = existingItems.find(item => item.name.toLowerCase() === name.toLowerCase());
+            const codeExists = existingItems.find(item => item.code.toLowerCase() === code.toLowerCase());
+            
+            if (nameExists) {
+                showToast(`A ${conflict.type} with the name "${name}" already exists`, 'error');
+                return;
+            }
+            
+            if (codeExists) {
+                showToast(`A ${conflict.type} with the code "${code}" already exists`, 'error');
+                return;
+            }
+            
+            try {
+                let newData;
+                
+                if (isSupplier) {
+                    const supplierData = {
+                        name: name,
+                        code: code,
+                        color: color,
+                        contactEmail: document.getElementById(`editCreateEmail${index}`).value.trim(),
+                        contactPhone: document.getElementById(`editCreatePhone${index}`).value.trim(),
+                        website: document.getElementById(`editCreateWebsite${index}`).value.trim(),
+                        address: document.getElementById(`editCreateAddress${index}`).value.trim()
+                    };
+                    
+                    newData = await inventoryDB.addSupplier(supplierData);
+                    this.existingSuppliers.push(newData);
+                    
+                    // Map all variants to the new supplier if grouped
+                    if (conflict.isGroup && conflict.variants) {
+                        conflict.variants.forEach(variant => {
+                            this.dataResolutions.suppliers.set(variant.value, newData);
+                        });
+                    } else {
+                        this.dataResolutions.suppliers.set(conflict.importValue, newData);
+                    }
+                    
+                } else {
+                    const categoryData = {
+                        name: name,
+                        code: code,
+                        color: color,
+                        description: document.getElementById(`editCreateDescription${index}`).value.trim(),
+                        isDefault: false
+                    };
+                    
+                    newData = await inventoryDB.addCategory(categoryData);
+                    this.existingCategories.push(newData);
+                    
+                    // Map all variants to the new category if grouped
+                    if (conflict.isGroup && conflict.variants) {
+                        conflict.variants.forEach(variant => {
+                            this.dataResolutions.categories.set(variant.value, newData);
+                        });
+                    } else {
+                        this.dataResolutions.categories.set(conflict.importValue, newData);
+                    }
+                }
+                
+                // Mark as resolved and remove from pending
+                this.pendingResolutions.splice(index, 1);
+                
+                // Update UI
+                this.markConflictResolved(index, `Created new ${conflict.type}`, conflict.itemCount);
+                
+                modal.hide();
+                
+                const itemCountText = conflict.itemCount ? ` (${conflict.itemCount} items affected)` : '';
+                showToast(`Created new ${conflict.type} "${name}"${itemCountText}`, 'success');
+                
+                // Check if all conflicts are resolved
+                this.checkIfAllConflictsResolved();
+                
+            } catch (error) {
+                console.error('Error creating new data from edit modal:', error);
+                showToast(`Error creating ${conflict.type}: ${error.message}`, 'error');
+            }
+        });
+        
+        // Clean up modal when hidden
+        document.getElementById(modalId).addEventListener('hidden.bs.modal', () => {
+            document.getElementById(modalId).remove();
+        });
+        
+        // Show the modal
+        modal.show();
+    }
+    
+    // Method to refresh conflict display if UI gets out of sync
+    refreshConflictDisplay() {
+        try {
+            console.log('Refreshing conflict display...');
+            const container = document.getElementById('dataValidationContainer');
+            if (container && this.pendingResolutions.length > 0) {
+                container.innerHTML = this.renderDataConflicts(this.pendingResolutions);
+                console.log(`Refreshed ${this.pendingResolutions.length} conflicts`);
+            } else if (container && this.pendingResolutions.length === 0) {
+                // All conflicts resolved
+                container.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>All Conflicts Resolved!</strong>
+                        <p class="mb-0 mt-2">Great! All data conflicts have been resolved. You can now proceed to import your items.</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error refreshing conflict display:', error);
+        }
+    }
+    
+    // Test method for debugging autocomplete functionality
+    testAutocomplete() {
+        console.log('Testing autocomplete functionality...');
+        
+        // Check if conflict resolution cards exist
+        const conflictCards = document.querySelectorAll('.conflict-resolution-card');
+        console.log('Found conflict cards:', conflictCards.length);
+        
+        // Check for autocomplete inputs
+        const autocompleteInputs = document.querySelectorAll('.autocomplete-input');
+        console.log('Found autocomplete inputs:', autocompleteInputs.length);
+        
+        // Check for action buttons
+        const mapButtons = document.querySelectorAll('[data-action="map-selected"]');
+        const createButtons = document.querySelectorAll('[data-action="create-from-input"]');
+        console.log('Found map-selected buttons:', mapButtons.length);
+        console.log('Found create-from-input buttons:', createButtons.length);
+        
+        // Test clicking on first autocomplete input if it exists
+        if (autocompleteInputs.length > 0) {
+            const input = autocompleteInputs[0];
+            console.log('Testing first autocomplete input:', input);
+            
+            // Simulate typing
+            input.value = 'test';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            setTimeout(() => {
+                const suggestions = input.parentElement.querySelector('.autocomplete-suggestions');
+                console.log('Suggestions container:', suggestions);
+                if (suggestions) {
+                    console.log('Suggestions HTML:', suggestions.innerHTML);
+                }
+            }, 100);
+        }
+        
+        return {
+            conflictCards: conflictCards.length,
+            inputs: autocompleteInputs.length,
+            mapButtons: mapButtons.length,
+            createButtons: createButtons.length
+        };
+    }
+    
+    // Comprehensive debugging method for troubleshooting stuck UI
+    debugBulkImportState() {
+        console.log('=== BULK IMPORT DEBUG STATE ===');
+        console.log('Pending resolutions:', this.pendingResolutions.length);
+        console.log('Resolved suppliers:', this.dataResolutions.suppliers.size);
+        console.log('Resolved categories:', this.dataResolutions.categories.size);
+        
+        // Check for conflicts marked as resolved but still in pending list
+        const stuckConflicts = this.pendingResolutions.filter(c => c.status === 'resolved');
+        console.log('Stuck resolved conflicts:', stuckConflicts.length);
+        
+        // Check conflict card states
+        const conflictCards = document.querySelectorAll('.conflict-resolution-card');
+        const resolvedCards = document.querySelectorAll('.conflict-resolution-card[data-resolved="true"]');
+        console.log('Total conflict cards:', conflictCards.length);
+        console.log('Resolved cards:', resolvedCards.length);
+        
+        // Check button states
+        const allButtons = document.querySelectorAll('[data-action]');
+        const disabledButtons = document.querySelectorAll('[data-action]:disabled');
+        console.log('Total action buttons:', allButtons.length);
+        console.log('Disabled buttons:', disabledButtons.length);
+        
+        // List pending conflict details
+        this.pendingResolutions.forEach((conflict, index) => {
+            console.log(`Conflict ${index}: ${conflict.type} "${conflict.importValue}" - Status: ${conflict.status || 'pending'}`);
+        });
+        
+        return {
+            pendingCount: this.pendingResolutions.length,
+            resolvedSuppliers: this.dataResolutions.suppliers.size,
+            resolvedCategories: this.dataResolutions.categories.size,
+            stuckCount: stuckConflicts.length,
+            totalCards: conflictCards.length,
+            resolvedCards: resolvedCards.length,
+            actionButtons: allButtons.length,
+            disabledButtons: disabledButtons.length
+        };
+    }
+    
+    // Method to fix stuck state
+    fixStuckState() {
+        console.log('Attempting to fix stuck state...');
+        
+        // Remove resolved conflicts from pending list
+        const originalLength = this.pendingResolutions.length;
+        this.pendingResolutions = this.pendingResolutions.filter(c => c.status !== 'resolved');
+        const removedCount = originalLength - this.pendingResolutions.length;
+        
+        console.log(`Removed ${removedCount} resolved conflicts from pending list`);
+        
+        // Refresh the display
+        this.refreshConflictDisplay();
+        
+        // Check if all are now resolved
+        this.checkIfAllConflictsResolved();
+        
+        return {
+            removedConflicts: removedCount,
+            remainingConflicts: this.pendingResolutions.length
+        };
+    }
+    
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 0, g: 0, b: 0 };
     }
     
     splitConflictGroup(index) {
@@ -1622,51 +2220,81 @@ class BulkImportManager {
     }
     
     async resolveConflictByMapping(index, targetName, targetCode) {
-        const conflict = this.pendingResolutions[index];
-        if (!conflict) return;
-        
-        // Find the target item
-        const targetData = conflict.type === 'supplier' 
-            ? this.existingSuppliers.find(s => s.name === targetName)
-            : this.existingCategories.find(c => c.name === targetName);
-            
-        if (!targetData) {
-            showToast('Target data not found', 'error');
-            return;
-        }
-        
-        // Handle grouped conflicts - store resolution for all variants
-        if (conflict.isGroup && conflict.variants) {
-            conflict.variants.forEach(variant => {
-                if (conflict.type === 'supplier') {
-                    this.dataResolutions.suppliers.set(variant.value, targetData);
-                } else {
-                    this.dataResolutions.categories.set(variant.value, targetData);
-                }
-            });
-        } else {
-            // Single conflict resolution
-            if (conflict.type === 'supplier') {
-                this.dataResolutions.suppliers.set(conflict.importValue, targetData);
-            } else {
-                this.dataResolutions.categories.set(conflict.importValue, targetData);
+        try {
+            const conflict = this.pendingResolutions[index];
+            if (!conflict) {
+                console.warn(`Conflict at index ${index} not found or already resolved`);
+                return;
             }
+            
+            // Check if conflict is already resolved
+            if (conflict.status === 'resolved') {
+                console.log(`Conflict at index ${index} already resolved, skipping`);
+                return;
+            }
+            
+            console.log(`Resolving conflict at index ${index}: mapping "${conflict.importValue}" to "${targetName}"`);
+            
+            // Find the target item
+            const targetData = conflict.type === 'supplier' 
+                ? this.existingSuppliers.find(s => s.name === targetName)
+                : this.existingCategories.find(c => c.name === targetName);
+                
+            if (!targetData) {
+                showToast(`Target ${conflict.type} "${targetName}" not found`, 'error');
+                console.error(`Target data not found for ${targetName}`);
+                return;
+            }
+            
+            // Mark as resolving to prevent duplicate processing
+            conflict.status = 'resolving';
+            
+            // Handle grouped conflicts - store resolution for all variants
+            if (conflict.isGroup && conflict.variants) {
+                conflict.variants.forEach(variant => {
+                    if (conflict.type === 'supplier') {
+                        this.dataResolutions.suppliers.set(variant.value, targetData);
+                    } else {
+                        this.dataResolutions.categories.set(variant.value, targetData);
+                    }
+                });
+            } else {
+                // Single conflict resolution
+                if (conflict.type === 'supplier') {
+                    this.dataResolutions.suppliers.set(conflict.importValue, targetData);
+                } else {
+                    this.dataResolutions.categories.set(conflict.importValue, targetData);
+                }
+            }
+            
+            // Mark as resolved
+            conflict.status = 'resolved';
+            
+            // Update UI first
+            this.markConflictResolved(index, `Mapped to "${targetName}"`, conflict.itemCount);
+            
+            const itemCountText = conflict.itemCount ? ` (${conflict.itemCount} items)` : '';
+            const conflictText = conflict.isGroup ? 
+                `${conflict.variants.length} similar ${conflict.type}s` : 
+                `"${conflict.importValue}"`;
+            showToast(`${conflictText} mapped to existing ${conflict.type} "${targetName}"${itemCountText}`, 'success');
+            
+            // Remove from pending (do this after UI update with a small delay to avoid index issues)
+            setTimeout(() => {
+                const conflictIndex = this.pendingResolutions.findIndex(c => c === conflict);
+                if (conflictIndex !== -1) {
+                    this.pendingResolutions.splice(conflictIndex, 1);
+                    console.log(`Removed conflict from pending list, ${this.pendingResolutions.length} conflicts remaining`);
+                }
+                
+                // Check if all conflicts are resolved
+                this.checkIfAllConflictsResolved();
+            }, 100);
+            
+        } catch (error) {
+            console.error('Error resolving conflict by mapping:', error);
+            showToast('Error resolving conflict. Please try again.', 'error');
         }
-        
-        // Mark as resolved and remove from pending
-        this.pendingResolutions.splice(index, 1);
-        
-        // Update UI
-        this.markConflictResolved(index, `Mapped to "${targetName}"`, conflict.itemCount);
-        
-        const itemCountText = conflict.itemCount ? ` (${conflict.itemCount} items)` : '';
-        const conflictText = conflict.isGroup ? 
-            `${conflict.variants.length} similar ${conflict.type}s` : 
-            `"${conflict.importValue}"`;
-        showToast(`${conflictText} mapped to existing ${conflict.type} "${targetName}"${itemCountText}`, 'success');
-        
-        // Check if all conflicts are resolved
-        this.checkIfAllConflictsResolved();
     }
     
     async resolveConflictByCreating(index) {
@@ -1791,23 +2419,47 @@ class BulkImportManager {
     }
     
     markConflictResolved(index, resolution, itemCount = null) {
-        const conflictCard = document.getElementById(`conflict-${index}`);
-        if (conflictCard) {
-            const itemCountText = itemCount ? ` (${itemCount} items affected)` : '';
-            conflictCard.innerHTML = `
-                <div class="card-body text-center">
-                    <div class="text-success mb-2">
-                        <i class="fas fa-check-circle fa-2x"></i>
+        try {
+            const conflictCard = document.getElementById(`conflict-${index}`);
+            if (conflictCard) {
+                const itemCountText = itemCount ? ` (${itemCount} items affected)` : '';
+                conflictCard.innerHTML = `
+                    <div class="card-body text-center">
+                        <div class="text-success mb-2">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                        <h6 class="card-title text-success">Resolved</h6>
+                        <p class="card-text small text-muted">${resolution}${itemCountText}</p>
                     </div>
-                    <h6 class="card-title text-success">Resolved</h6>
-                    <p class="card-text small text-muted">${resolution}${itemCountText}</p>
-                </div>
-            `;
-            conflictCard.classList.add('border-success');
+                `;
+                conflictCard.classList.add('border-success');
+                
+                // Mark the card as resolved to prevent further interaction
+                conflictCard.dataset.resolved = 'true';
+                
+                // Disable all buttons in this card
+                const buttons = conflictCard.querySelectorAll('button');
+                buttons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.pointerEvents = 'none';
+                });
+                
+                // Disable all inputs in this card
+                const inputs = conflictCard.querySelectorAll('input');
+                inputs.forEach(input => {
+                    input.disabled = true;
+                    input.style.pointerEvents = 'none';
+                });
+            } else {
+                console.warn(`Conflict card with ID conflict-${index} not found`);
+            }
+            
+            // Update progress bar
+            this.updateConflictProgress();
+            
+        } catch (error) {
+            console.error('Error marking conflict as resolved:', error);
         }
-        
-        // Update progress bar
-        this.updateConflictProgress();
     }
     
     updateConflictProgress() {
@@ -2023,16 +2675,49 @@ class BulkImportManager {
                                     <div class="autocomplete-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom" 
                                          style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;"></div>
                                 </div>
+                                <div class="row mt-2">
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-secondary w-100" 
+                                                data-index="${index}" 
+                                                data-action="map-selected" 
+                                                disabled>
+                                            <i class="fas fa-link"></i> Map to Selected
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-secondary w-100" 
+                                                data-index="${index}" 
+                                                data-action="create-from-input" 
+                                                disabled>
+                                            <i class="fas fa-plus"></i> Create New
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             
                             <!-- Create New Option -->
                             <div class="resolution-option">
-                                <button class="btn btn-success w-100" 
-                                        data-index="${index}" 
-                                        data-action="create">
-                                    <i class="fas fa-plus me-2"></i>
-                                    Create New ${conflict.type} "${conflict.importValue}"
-                                </button>
+                                <div class="mb-2">
+                                    <span class="fw-bold">Create New ${conflict.type}:</span>
+                                </div>
+                                <div class="row">
+                                    <div class="col-8">
+                                        <button class="btn btn-success w-100" 
+                                                data-index="${index}" 
+                                                data-action="create">
+                                            <i class="fas fa-plus me-2"></i>
+                                            Quick Create "${conflict.importValue}"
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <button class="btn btn-outline-success w-100" 
+                                                data-index="${index}" 
+                                                data-action="edit-create">
+                                            <i class="fas fa-edit me-1"></i>Edit
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Quick create uses auto-generated details. Use Edit to customize before creating.</small>
                             </div>
                         </div>
                     </div>
