@@ -590,12 +590,12 @@ class BulkImportManager {
         this.resolveConflictByMapping(conflictId, targetName, targetCode);
     }
     
-    async resolveConflictByCreatingFromInput(index) {
-        const conflict = this.pendingResolutions[index];
+    async resolveConflictByCreatingFromInput(conflictId) {
+        const conflict = this.pendingResolutions.find(c => c.id === conflictId);
         if (!conflict) return;
         
         // Get the autocomplete input for this conflict
-        const conflictCard = document.getElementById(`conflict-${index}`);
+        const conflictCard = document.getElementById(`conflict-${conflictId}`);
         const input = conflictCard?.querySelector('.autocomplete-input');
         
         if (!input || !input.value.trim()) {
@@ -613,7 +613,7 @@ class BulkImportManager {
         
         if (exactMatch) {
             // If it already exists, just map to it instead
-            this.resolveConflictByMapping(index, exactMatch.name, exactMatch.code || exactMatch.id);
+            this.resolveConflictByMapping(conflictId, exactMatch.name, exactMatch.code || exactMatch.id);
             return;
         }
         
@@ -667,10 +667,13 @@ class BulkImportManager {
             }
             
             // Mark as resolved and remove from pending
-            this.pendingResolutions.splice(index, 1);
+            const conflictIndex = this.pendingResolutions.findIndex(c => c === conflict);
+            if (conflictIndex !== -1) {
+                this.pendingResolutions.splice(conflictIndex, 1);
+            }
             
             // Update UI
-            this.markConflictResolved(index, `Created new ${conflict.type}`, conflict.itemCount);
+            this.markConflictResolved(conflictId, `Created new ${conflict.type}`, conflict.itemCount);
             
             const itemCountText = conflict.itemCount ? ` (${conflict.itemCount} items affected)` : '';
             showToast(`Created new ${conflict.type} "${nameToCreate}"${itemCountText}`, 'success');
@@ -2317,9 +2320,12 @@ class BulkImportManager {
         }
     }
     
-    async resolveConflictByCreating(index) {
-        const conflict = this.pendingResolutions[index];
-        if (!conflict) return;
+    async resolveConflictByCreating(conflictId) {
+        const conflict = this.pendingResolutions.find(c => c.id === conflictId);
+        if (!conflict) {
+            console.warn(`Conflict with ID ${conflictId} not found`);
+            return;
+        }
         
         try {
             // Before creating, check if the item was already resolved or if it actually exists
@@ -2330,8 +2336,11 @@ class BulkImportManager {
             if (existingResolution) {
                 console.log(`Conflict "${conflict.importValue}" already resolved, using existing resolution`);
                 // Mark as resolved and remove from pending
-                this.pendingResolutions.splice(index, 1);
-                this.markConflictResolved(index, `Already resolved to "${existingResolution.name}"`, conflict.itemCount);
+                const conflictIndex = this.pendingResolutions.findIndex(c => c === conflict);
+                if (conflictIndex !== -1) {
+                    this.pendingResolutions.splice(conflictIndex, 1);
+                }
+                this.markConflictResolved(conflictId, `Already resolved to "${existingResolution.name}"`, conflict.itemCount);
                 this.checkIfAllConflictsResolved();
                 return;
             }
@@ -2352,8 +2361,11 @@ class BulkImportManager {
                 }
                 
                 // Mark as resolved and remove from pending
-                this.pendingResolutions.splice(index, 1);
-                this.markConflictResolved(index, `Mapped to existing "${exactMatch.name}"`, conflict.itemCount);
+                const conflictIndex = this.pendingResolutions.findIndex(c => c === conflict);
+                if (conflictIndex !== -1) {
+                    this.pendingResolutions.splice(conflictIndex, 1);
+                }
+                this.markConflictResolved(conflictId, `Mapped to existing "${exactMatch.name}"`, conflict.itemCount);
                 this.checkIfAllConflictsResolved();
                 return;
             }
@@ -2411,10 +2423,13 @@ class BulkImportManager {
             }
             
             // Mark as resolved and remove from pending
-            this.pendingResolutions.splice(index, 1);
+            const finalConflictIndex = this.pendingResolutions.findIndex(c => c === conflict);
+            if (finalConflictIndex !== -1) {
+                this.pendingResolutions.splice(finalConflictIndex, 1);
+            }
             
             // Update UI
-            this.markConflictResolved(index, `Created new ${conflict.type}`, conflict.itemCount);
+            this.markConflictResolved(conflictId, `Created new ${conflict.type}`, conflict.itemCount);
             
             const itemCountText = conflict.itemCount ? ` (${conflict.itemCount} items affected)` : '';
             const conflictText = conflict.isGroup ? 
