@@ -313,54 +313,64 @@ class BulkImportManager {
             
             if (e.target.matches('[data-action="map"]') || e.target.closest('[data-action="map"]')) {
                 const button = e.target.matches('[data-action="map"]') ? e.target : e.target.closest('[data-action="map"]');
-                const index = parseInt(button.dataset.index);
+                const conflictId = button.dataset.conflictId;
                 const targetName = button.dataset.target;
                 const targetCode = button.dataset.targetCode;
                 
-                // Double-check the conflict hasn't been resolved already
-                if (this.pendingResolutions[index]) {
-                    this.resolveConflictByMapping(index, targetName, targetCode);
+                // Find the conflict by ID
+                const conflict = this.pendingResolutions.find(c => c.id === conflictId);
+                if (conflict) {
+                    this.resolveConflictByMapping(conflictId, targetName, targetCode);
                 } else {
-                    console.warn(`Conflict at index ${index} no longer exists`);
+                    console.warn(`Conflict with ID ${conflictId} no longer exists`);
                 }
             } else if (e.target.matches('[data-action="create"]') || e.target.closest('[data-action="create"]')) {
                 const button = e.target.matches('[data-action="create"]') ? e.target : e.target.closest('[data-action="create"]');
-                const index = parseInt(button.dataset.index);
-                if (this.pendingResolutions[index]) {
-                    this.resolveConflictByCreating(index);
+                const conflictId = button.dataset.conflictId;
+                const conflict = this.pendingResolutions.find(c => c.id === conflictId);
+                if (conflict) {
+                    this.resolveConflictByCreating(conflictId);
                 } else {
-                    console.warn(`Conflict at index ${index} no longer exists`);
+                    console.warn(`Conflict with ID ${conflictId} no longer exists`);
                 }
             } else if (e.target.matches('[data-action="map-selected"]') || e.target.closest('[data-action="map-selected"]')) {
                 const button = e.target.matches('[data-action="map-selected"]') ? e.target : e.target.closest('[data-action="map-selected"]');
-                const index = parseInt(button.dataset.index);
-                if (this.pendingResolutions[index]) {
-                    this.resolveConflictByMappingFromInput(index);
+                const conflictId = button.dataset.conflictId;
+                const conflict = this.pendingResolutions.find(c => c.id === conflictId);
+                if (conflict) {
+                    this.resolveConflictByMappingFromInput(conflictId);
                 } else {
-                    console.warn(`Conflict at index ${index} no longer exists`);
+                    console.warn(`Conflict with ID ${conflictId} no longer exists`);
                 }
             } else if (e.target.matches('[data-action="create-from-input"]') || e.target.closest('[data-action="create-from-input"]')) {
                 const button = e.target.matches('[data-action="create-from-input"]') ? e.target : e.target.closest('[data-action="create-from-input"]');
-                const index = parseInt(button.dataset.index);
-                if (this.pendingResolutions[index]) {
-                    this.resolveConflictByCreatingFromInput(index);
+                const conflictId = button.dataset.conflictId;
+                const conflict = this.pendingResolutions.find(c => c.id === conflictId);
+                if (conflict) {
+                    this.resolveConflictByCreatingFromInput(conflictId);
                 } else {
-                    console.warn(`Conflict at index ${index} no longer exists`);
+                    console.warn(`Conflict with ID ${conflictId} no longer exists`);
                 }
             } else if (e.target.matches('[data-action="edit-create"]') || e.target.closest('[data-action="edit-create"]')) {
                 const button = e.target.matches('[data-action="edit-create"]') ? e.target : e.target.closest('[data-action="edit-create"]');
-                const index = parseInt(button.dataset.index);
-                if (this.pendingResolutions[index]) {
-                    this.showEditCreateModal(index);
+                const conflictId = button.dataset.conflictId;
+                const conflict = this.pendingResolutions.find(c => c.id === conflictId);
+                if (conflict) {
+                    this.showEditCreateModal(conflictId);
                 } else {
-                    console.warn(`Conflict at index ${index} no longer exists`);
+                    console.warn(`Conflict with ID ${conflictId} no longer exists`);
                 }
             }
             // Handle split group action
             else if (e.target.matches('[data-action="split-group"]') || e.target.closest('[data-action="split-group"]')) {
                 const button = e.target.matches('[data-action="split-group"]') ? e.target : e.target.closest('[data-action="split-group"]');
-                const index = parseInt(button.dataset.index);
-                this.splitConflictGroup(index);
+                const conflictId = button.dataset.conflictId;
+                const conflict = this.pendingResolutions.find(c => c.id === conflictId);
+                if (conflict) {
+                    this.splitConflictGroup(conflictId);
+                } else {
+                    console.warn(`Conflict with ID ${conflictId} no longer exists`);
+                }
             }
             // Handle autocomplete suggestion clicks
             else if (e.target.matches('.autocomplete-suggestion-item')) {
@@ -1890,6 +1900,9 @@ class BulkImportManager {
         const uniqueSuppliers = new Map(); // Changed to Map to track counts and affected rows
         const uniqueCategories = new Map(); // Changed to Map to track counts and affected rows
         
+        // Generate a unique conflict ID counter
+        let conflictIdCounter = 0;
+        
         // Collect unique values from import data with item counts and row references
         this.parsedData.forEach((row, rowIndex) => {
             if (this.fieldMappings.supplier && row[this.fieldMappings.supplier]) {
@@ -1941,6 +1954,7 @@ class BulkImportManager {
                 if (!this.dataResolutions.suppliers.has(supplierName)) {
                     const suggestions = this.findSuggestions(supplierName, this.existingSuppliers, 'name');
                     conflicts.push({
+                        id: `conflict_${conflictIdCounter++}`,
                         type: 'supplier',
                         importValue: supplierName,
                         itemCount: supplierData.itemCount,
@@ -1971,6 +1985,7 @@ class BulkImportManager {
                 if (!this.dataResolutions.categories.has(categoryName)) {
                     const suggestions = this.findSuggestions(categoryName, this.existingCategories, 'name');
                     conflicts.push({
+                        id: `conflict_${conflictIdCounter++}`,
                         type: 'category',
                         importValue: categoryName,
                         itemCount: categoryData.itemCount,
@@ -2036,10 +2051,12 @@ class BulkImportManager {
                 // Create a grouped conflict
                 const allConflicts = [currentConflict, ...similarConflicts];
                 const groupedConflict = {
+                    id: `group_${currentConflict.id}`,
                     type: currentConflict.type,
                     importValue: currentConflict.importValue, // Use first variant as primary
                     isGroup: true,
                     variants: allConflicts.map(c => ({
+                        id: c.id,
                         value: c.importValue,
                         itemCount: c.itemCount,
                         affectedRows: c.affectedRows,
@@ -2189,8 +2206,8 @@ class BulkImportManager {
                     <div class="row">
             `;
             
-            supplierConflicts.forEach((conflict, index) => {
-                html += this.renderConflictCard(conflict, index);
+            supplierConflicts.forEach((conflict) => {
+                html += this.renderConflictCard(conflict);
             });
             
             html += `
@@ -2206,8 +2223,8 @@ class BulkImportManager {
                     <div class="row">
             `;
             
-            categoryConflicts.forEach((conflict, index) => {
-                html += this.renderConflictCard(conflict, index + supplierConflicts.length);
+            categoryConflicts.forEach((conflict) => {
+                html += this.renderConflictCard(conflict);
             });
             
             html += `
@@ -2585,7 +2602,8 @@ class BulkImportManager {
         return colors[Math.floor(Math.random() * colors.length)];
     }
     
-    renderConflictCard(conflict, index) {
+    renderConflictCard(conflict) {
+        const conflictId = conflict.id;
         const itemCountBadge = conflict.itemCount ? `<span class="badge bg-secondary ms-2">${conflict.itemCount} items</span>` : '';
         const affectedRowsText = conflict.affectedRows ? conflict.affectedRows.slice(0, 5).join(', ') + (conflict.affectedRows.length > 5 ? '...' : '') : '';
         const sampleItemsText = conflict.sampleItems ? conflict.sampleItems.slice(0, 3).join(', ') + (conflict.sampleItems.length > 3 ? '...' : '') : '';
@@ -2600,7 +2618,7 @@ class BulkImportManager {
         
         return `
             <div class="col-md-6 mb-3">
-                <div class="card conflict-resolution-card" id="conflict-${index}">
+                <div class="card conflict-resolution-card" id="conflict-${conflictId}">
                     <div class="card-body">
                         <h6 class="card-title text-warning d-flex align-items-center">
                             <i class="fas fa-${isGrouped ? 'layer-group' : 'question-circle'} me-2"></i> 
@@ -2616,7 +2634,7 @@ class BulkImportManager {
                                     ${conflict.variants.map(v => `• "${v.value}" (${v.itemCount} items)`).join('<br>')}
                                 </small>
                                 <div class="mt-2">
-                                    <button class="btn btn-sm btn-outline-secondary" data-index="${index}" data-action="split-group">
+                                    <button class="btn btn-sm btn-outline-secondary" data-conflict-id="${conflictId}" data-action="split-group">
                                         <i class="fas fa-unlink me-1"></i>Split & Resolve Separately
                                     </button>
                                 </div>
@@ -2650,7 +2668,7 @@ class BulkImportManager {
                                         <span class="badge bg-primary">Recommended</span>
                                     </div>
                                     <button class="btn btn-outline-primary w-100 text-start best-match-btn" 
-                                            data-index="${index}" 
+                                            data-conflict-id="${conflictId}" 
                                             data-action="map" 
                                             data-target="${bestSuggestion.name}" 
                                             data-target-code="${bestSuggestion.code || bestSuggestion.id}">
@@ -2669,7 +2687,7 @@ class BulkImportManager {
                                     <input type="text" 
                                            class="form-control autocomplete-input" 
                                            placeholder="Type to search existing ${conflict.type}s..." 
-                                           data-index="${index}" 
+                                           data-conflict-id="${conflictId}" 
                                            data-type="${conflict.type}" 
                                            autocomplete="off">
                                     <div class="autocomplete-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom" 
@@ -2678,7 +2696,7 @@ class BulkImportManager {
                                 <div class="row mt-2">
                                     <div class="col-6">
                                         <button class="btn btn-outline-secondary w-100" 
-                                                data-index="${index}" 
+                                                data-conflict-id="${conflictId}" 
                                                 data-action="map-selected" 
                                                 disabled>
                                             <i class="fas fa-link"></i> Map to Selected
@@ -2686,7 +2704,7 @@ class BulkImportManager {
                                     </div>
                                     <div class="col-6">
                                         <button class="btn btn-outline-secondary w-100" 
-                                                data-index="${index}" 
+                                                data-conflict-id="${conflictId}" 
                                                 data-action="create-from-input" 
                                                 disabled>
                                             <i class="fas fa-plus"></i> Create New
@@ -2703,7 +2721,7 @@ class BulkImportManager {
                                 <div class="row">
                                     <div class="col-8">
                                         <button class="btn btn-success w-100" 
-                                                data-index="${index}" 
+                                                data-conflict-id="${conflictId}" 
                                                 data-action="create">
                                             <i class="fas fa-plus me-2"></i>
                                             Quick Create "${conflict.importValue}"
@@ -2711,7 +2729,7 @@ class BulkImportManager {
                                     </div>
                                     <div class="col-4">
                                         <button class="btn btn-outline-success w-100" 
-                                                data-index="${index}" 
+                                                data-conflict-id="${conflictId}" 
                                                 data-action="edit-create">
                                             <i class="fas fa-edit me-1"></i>Edit
                                         </button>
