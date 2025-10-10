@@ -463,11 +463,14 @@ class BulkImportManager {
             return;
         }
         
+        // Get conflict ID from the input element
+        const conflictId = input.dataset.conflictId;
+        
         // Render suggestions
         const suggestionsHtml = matches
             .map(item => `
                 <div class="autocomplete-suggestion-item p-2 border-bottom" 
-                     data-index="${index}" 
+                     data-conflict-id="${conflictId}" 
                      data-name="${item.name}" 
                      data-code="${item.code || item.id}" 
                      data-type="${type}">
@@ -517,11 +520,11 @@ class BulkImportManager {
     handleAutocompleteSuggestionClick(suggestionElement) {
         console.log('Autocomplete suggestion clicked:', suggestionElement);
         
-        const index = parseInt(suggestionElement.dataset.index);
+        const conflictId = suggestionElement.dataset.conflictId;
         const name = suggestionElement.dataset.name;
         const code = suggestionElement.dataset.code;
         
-        console.log('Suggestion data:', { index, name, code });
+        console.log('Suggestion data:', { conflictId, name, code });
         
         // Hide suggestions
         const suggestionsContainer = suggestionElement.parentElement;
@@ -568,12 +571,12 @@ class BulkImportManager {
         }
     }
     
-    async resolveConflictByMappingFromInput(index) {
-        const conflict = this.pendingResolutions[index];
+    async resolveConflictByMappingFromInput(conflictId) {
+        const conflict = this.pendingResolutions.find(c => c.id === conflictId);
         if (!conflict) return;
         
         // Get the autocomplete input for this conflict
-        const conflictCard = document.getElementById(`conflict-${index}`);
+        const conflictCard = document.getElementById(`conflict-${conflictId}`);
         const input = conflictCard?.querySelector('.autocomplete-input');
         
         if (!input || !input.dataset.selectedName) {
@@ -584,7 +587,7 @@ class BulkImportManager {
         const targetName = input.dataset.selectedName;
         const targetCode = input.dataset.selectedCode;
         
-        this.resolveConflictByMapping(index, targetName, targetCode);
+        this.resolveConflictByMapping(conflictId, targetName, targetCode);
     }
     
     async resolveConflictByCreatingFromInput(index) {
@@ -2236,21 +2239,21 @@ class BulkImportManager {
         return html;
     }
     
-    async resolveConflictByMapping(index, targetName, targetCode) {
+    async resolveConflictByMapping(conflictId, targetName, targetCode) {
         try {
-            const conflict = this.pendingResolutions[index];
+            const conflict = this.pendingResolutions.find(c => c.id === conflictId);
             if (!conflict) {
-                console.warn(`Conflict at index ${index} not found or already resolved`);
+                console.warn(`Conflict with ID ${conflictId} not found or already resolved`);
                 return;
             }
             
             // Check if conflict is already resolved
             if (conflict.status === 'resolved') {
-                console.log(`Conflict at index ${index} already resolved, skipping`);
+                console.log(`Conflict ${conflictId} already resolved, skipping`);
                 return;
             }
             
-            console.log(`Resolving conflict at index ${index}: mapping "${conflict.importValue}" to "${targetName}"`);
+            console.log(`Resolving conflict ${conflictId}: mapping "${conflict.importValue}" to "${targetName}"`);
             
             // Find the target item
             const targetData = conflict.type === 'supplier' 
@@ -2288,7 +2291,7 @@ class BulkImportManager {
             conflict.status = 'resolved';
             
             // Update UI first
-            this.markConflictResolved(index, `Mapped to "${targetName}"`, conflict.itemCount);
+            this.markConflictResolved(conflictId, `Mapped to "${targetName}"`, conflict.itemCount);
             
             const itemCountText = conflict.itemCount ? ` (${conflict.itemCount} items)` : '';
             const conflictText = conflict.isGroup ? 
@@ -2435,9 +2438,9 @@ class BulkImportManager {
         }
     }
     
-    markConflictResolved(index, resolution, itemCount = null) {
+    markConflictResolved(conflictId, resolution, itemCount = null) {
         try {
-            const conflictCard = document.getElementById(`conflict-${index}`);
+            const conflictCard = document.getElementById(`conflict-${conflictId}`);
             if (conflictCard) {
                 const itemCountText = itemCount ? ` (${itemCount} items affected)` : '';
                 conflictCard.innerHTML = `
@@ -2468,7 +2471,7 @@ class BulkImportManager {
                     input.style.pointerEvents = 'none';
                 });
             } else {
-                console.warn(`Conflict card with ID conflict-${index} not found`);
+                console.warn(`Conflict card with ID conflict-${conflictId} not found`);
             }
             
             // Update progress bar
