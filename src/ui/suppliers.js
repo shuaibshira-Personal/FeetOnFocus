@@ -217,6 +217,9 @@ class SuppliersManager {
                         <button type="button" class="btn btn-outline-primary" onclick="suppliersManager.viewSupplier(${supplier.id})" title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
+                        <button type="button" class="btn btn-outline-info" onclick="suppliersManager.viewInvoiceHistory('${supplier.code}')" title="Invoice History">
+                            <i class="fas fa-file-invoice"></i>
+                        </button>
                         <button type="button" class="btn btn-outline-warning" onclick="suppliersManager.editSupplier(${supplier.id})" title="Edit Supplier">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -268,6 +271,9 @@ class SuppliersManager {
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-outline-primary" onclick="suppliersManager.viewSupplier(${supplier.id})" title="View Details">
                             <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="suppliersManager.viewInvoiceHistory('${supplier.code}')" title="Invoice History">
+                            <i class="fas fa-file-invoice"></i>
                         </button>
                         <button type="button" class="btn btn-outline-warning" onclick="suppliersManager.editSupplier(${supplier.id})" title="Edit Supplier">
                             <i class="fas fa-edit"></i>
@@ -711,6 +717,347 @@ class SuppliersManager {
         } catch (error) {
             console.error('Error getting suppliers for dropdown:', error);
             return [];
+        }
+    }
+
+    /**
+     * View invoice history for a supplier
+     * @param {string} supplierCode - Supplier code
+     */
+    async viewInvoiceHistory(supplierCode) {
+        try {
+            // Get supplier info
+            const supplier = this.suppliers.find(s => s.code === supplierCode);
+            if (!supplier) {
+                showToast('Supplier not found', 'error');
+                return;
+            }
+            
+            // Get invoices for this supplier
+            const invoices = await inventoryDB.getInvoiceDocumentsBySupplier(supplierCode);
+            
+            this.showInvoiceHistoryModal(supplier, invoices);
+            
+        } catch (error) {
+            console.error('Error loading invoice history:', error);
+            showToast('Error loading invoice history: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * Show invoice history modal
+     * @param {Object} supplier - Supplier object
+     * @param {Array} invoices - Array of invoice documents
+     */
+    showInvoiceHistoryModal(supplier, invoices) {
+        const modalHtml = `
+            <div class="modal fade" id="invoiceHistoryModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <span class="badge me-2" style="background-color: ${supplier.color}; color: white;">
+                                    ${supplier.name}
+                                </span>
+                                Invoice History
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${invoices.length > 0 ? this.renderInvoiceHistoryTable(invoices) : this.renderNoInvoicesMessage()}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        const existingModal = document.getElementById('invoiceHistoryModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('invoiceHistoryModal'));
+        modal.show();
+
+        // Remove modal from DOM after it's hidden
+        document.getElementById('invoiceHistoryModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+
+    /**
+     * Render invoice history table
+     * @param {Array} invoices - Array of invoice documents
+     * @returns {string} HTML string
+     */
+    renderInvoiceHistoryTable(invoices) {
+        return `
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Found <strong>${invoices.length}</strong> invoice(s) for this supplier.
+                        Click "View Invoice" to see the uploaded document.
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Upload Date</th>
+                            <th>Invoice #</th>
+                            <th>Invoice Date</th>
+                            <th>File Name</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Method</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${invoices.map(invoice => this.renderInvoiceHistoryRow(invoice)).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render individual invoice history row
+     * @param {Object} invoice - Invoice document
+     * @returns {string} HTML string
+     */
+    renderInvoiceHistoryRow(invoice) {
+        const statusColor = {
+            'processing': 'warning',
+            'completed': 'success',
+            'completed_with_errors': 'warning',
+            'failed': 'danger'
+        }[invoice.status] || 'secondary';
+
+        const methodIcon = {
+            'gemini-vision': 'fas fa-eye',
+            'gemini-vision-simple': 'fas fa-eye',
+            'text-extraction': 'fas fa-file-text',
+            'learned-algorithm': 'fas fa-brain'
+        }[invoice.processingMethod] || 'fas fa-cogs';
+
+        return `
+            <tr>
+                <td>
+                    <div class="small">${formatDate(invoice.createdAt)}</div>
+                </td>
+                <td>
+                    <strong>${invoice.invoiceNumber || '<span class="text-muted">Not detected</span>'}</strong>
+                </td>
+                <td>
+                    ${invoice.date ? formatDate(invoice.date) : '<span class="text-muted">Not detected</span>'}
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="${invoice.fileType === 'application/pdf' ? 'fas fa-file-pdf text-danger' : 'fas fa-file-image text-primary'} me-2"></i>
+                        <div>
+                            <div class="fw-bold">${invoice.fileName}</div>
+                            <div class="small text-muted">${(invoice.fileSize / 1024 / 1024).toFixed(2)} MB</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="fw-bold">${invoice.totalAmount ? formatCurrency(invoice.totalAmount, invoice.currency) : '<span class="text-muted">Not detected</span>'}</div>
+                    ${invoice.lineItemsCount ? `<div class="small text-muted">${invoice.lineItemsCount} line items</div>` : ''}
+                </td>
+                <td>
+                    <span class="badge bg-${statusColor}">${invoice.status.replace('_', ' ')}</span>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="${methodIcon} me-1"></i>
+                        <small>${(invoice.processingMethod || 'text-extraction').replace('-', ' ')}</small>
+                    </div>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="suppliersManager.viewInvoiceDocument(${invoice.id})" title="View Invoice">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="suppliersManager.downloadInvoice(${invoice.id})" title="Download">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    /**
+     * Render no invoices message
+     * @returns {string} HTML string
+     */
+    renderNoInvoicesMessage() {
+        return `
+            <div class="text-center py-5">
+                <i class="fas fa-file-invoice fa-4x text-muted mb-3"></i>
+                <h5>No Invoices Found</h5>
+                <p class="text-muted">No invoices have been uploaded for this supplier yet.</p>
+                <p class="text-muted small">Use the "Invoice Upload" feature to upload and process invoices for this supplier.</p>
+            </div>
+        `;
+    }
+
+    /**
+     * View invoice document
+     * @param {number} invoiceId - Invoice ID
+     */
+    async viewInvoiceDocument(invoiceId) {
+        try {
+            const invoice = await inventoryDB.getInvoiceDocument(invoiceId);
+            if (!invoice) {
+                showToast('Invoice not found', 'error');
+                return;
+            }
+
+            this.showInvoiceViewerModal(invoice);
+
+        } catch (error) {
+            console.error('Error loading invoice document:', error);
+            showToast('Error loading invoice document: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * Show invoice viewer modal
+     * @param {Object} invoice - Invoice document
+     */
+    showInvoiceViewerModal(invoice) {
+        const modalHtml = `
+            <div class="modal fade" id="invoiceViewerModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-fullscreen">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-file-invoice me-2"></i>
+                                Invoice Viewer - ${invoice.fileName}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            ${this.renderInvoiceViewer(invoice)}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-primary" onclick="suppliersManager.downloadInvoice(${invoice.id})">
+                                <i class="fas fa-download me-1"></i>Download
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        const existingModal = document.getElementById('invoiceViewerModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('invoiceViewerModal'));
+        modal.show();
+
+        // Remove modal from DOM after it's hidden
+        document.getElementById('invoiceViewerModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+
+    /**
+     * Render invoice viewer content
+     * @param {Object} invoice - Invoice document
+     * @returns {string} HTML string
+     */
+    renderInvoiceViewer(invoice) {
+        if (!invoice.fileData) {
+            return `
+                <div class="container py-5">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                        <h5>File Data Not Available</h5>
+                        <p class="text-muted">The original file data is not stored for this invoice.</p>
+                        <p class="text-muted small">This may be an older invoice processed before file storage was implemented.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (invoice.fileType === 'application/pdf') {
+            return `
+                <div class="container-fluid h-100">
+                    <div class="row h-100">
+                        <div class="col-12 h-100">
+                            <embed src="${invoice.fileData}" type="application/pdf" width="100%" height="100%" />
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (invoice.fileType.startsWith('image/')) {
+            return `
+                <div class="container py-3">
+                    <div class="text-center">
+                        <img src="${invoice.fileData}" class="img-fluid" alt="${invoice.fileName}" style="max-width: 100%; height: auto;" />
+                    </div>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="container py-5">
+                    <div class="text-center">
+                        <i class="fas fa-file fa-4x text-muted mb-3"></i>
+                        <h5>Unsupported File Type</h5>
+                        <p class="text-muted">Cannot preview ${invoice.fileType} files.</p>
+                        <p class="text-muted small">Use the download button to save the file locally.</p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Download invoice file
+     * @param {number} invoiceId - Invoice ID
+     */
+    async downloadInvoice(invoiceId) {
+        try {
+            const invoice = await inventoryDB.getInvoiceDocument(invoiceId);
+            if (!invoice || !invoice.fileData) {
+                showToast('Invoice file data not available', 'error');
+                return;
+            }
+
+            // Create download link
+            const link = document.createElement('a');
+            link.href = invoice.fileData;
+            link.download = invoice.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('Invoice downloaded successfully', 'success');
+
+        } catch (error) {
+            console.error('Error downloading invoice:', error);
+            showToast('Error downloading invoice: ' + error.message, 'error');
         }
     }
 

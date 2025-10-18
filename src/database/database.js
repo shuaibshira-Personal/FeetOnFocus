@@ -1506,6 +1506,31 @@ class InventoryDatabase {
     }
 
     /**
+     * Get invoice documents by supplier
+     * @param {string} supplierCode - Supplier code
+     * @returns {Promise<Array>} Array of invoice documents for the supplier
+     */
+    async getInvoiceDocumentsBySupplier(supplierCode) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['invoices'], 'readonly');
+            const store = transaction.objectStore('invoices');
+            const index = store.index('supplier');
+            const request = index.getAll(supplierCode);
+            
+            request.onsuccess = () => {
+                const invoices = request.result.sort((a, b) => 
+                    new Date(b.createdAt) - new Date(a.createdAt)
+                );
+                resolve(invoices);
+            };
+            
+            request.onerror = () => {
+                reject(new Error('Failed to get supplier invoices'));
+            };
+        });
+    }
+
+    /**
      * Save invoice line item
      * @param {Object} lineItemData - Line item data
      * @returns {Promise<Object>} Created line item

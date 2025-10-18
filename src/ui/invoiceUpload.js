@@ -204,6 +204,74 @@ class InvoiceUploadManager {
         this.selectedSupplier = selectedSupplier;
     }
 
+    /**
+     * Verify supplier exists in database
+     * @param {string} supplierNameOrCode - Supplier name or code from processed invoice
+     * @returns {Promise<Object>} Verification result
+     */
+    async verifySupplier(supplierNameOrCode) {
+        try {
+            // First try to find by exact code match
+            const suppliers = await inventoryDB.getAllSuppliers();
+            
+            // Try exact code match first (case insensitive)
+            let supplier = suppliers.find(s => 
+                s.code.toLowerCase() === supplierNameOrCode.toLowerCase()
+            );
+            
+            // If not found by code, try name match (case insensitive)
+            if (!supplier) {
+                supplier = suppliers.find(s => 
+                    s.name.toLowerCase() === supplierNameOrCode.toLowerCase()
+                );
+            }
+            
+            // If still not found, try partial name matching
+            if (!supplier) {
+                supplier = suppliers.find(s => 
+                    s.name.toLowerCase().includes(supplierNameOrCode.toLowerCase()) ||
+                    supplierNameOrCode.toLowerCase().includes(s.name.toLowerCase())
+                );
+            }
+            
+            if (supplier) {
+                return {
+                    exists: true,
+                    supplierCode: supplier.code,
+                    supplierName: supplier.name,
+                    supplier: supplier
+                };
+            } else {
+                return {
+                    exists: false,
+                    searchTerm: supplierNameOrCode,
+                    suggestions: suppliers.filter(s => 
+                        s.name.toLowerCase().includes(supplierNameOrCode.toLowerCase().substring(0, 3))
+                    ).slice(0, 3)
+                };
+            }
+        } catch (error) {
+            console.error('Error verifying supplier:', error);
+            return { exists: false, error: error.message };
+        }
+    }
+
+    /**
+     * Convert file to base64 for database storage
+     * @param {File} file - File to convert
+     * @returns {Promise<string>} Base64 encoded file data
+     */
+    async convertFileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                resolve(reader.result); // Includes data URL prefix
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
     async processInvoiceFile() {
         const fileInput = document.getElementById('invoiceFileInput');
         const file = fileInput.files[0];
@@ -233,9 +301,16 @@ class InvoiceUploadManager {
             // Process the invoice using the invoice processor
             this.processedData = await invoiceProcessor.processInvoice(file, this.selectedSupplier);
             
-            this.showProcessingProgress('Processing line items with AI...', 80);
+            this.showProcessingProgress('Verifying supplier...', 60);
             
             if (this.processedData.success) {
+                // Verify supplier exists in database
+                const supplierVerification = await this.verifySupplier(this.processedData.supplier);
+                if (!supplierVerification.exists) {
+                    showToast(`⚠️ Supplier "${this.processedData.supplier}" not found in database. Please add this supplier first.`, 'warning');
+                    return;
+                }
+                
                 // Check if training is needed
                 if (this.processedData.needsTraining) {
                     console.log('📚 New supplier needs training');
@@ -245,17 +320,27 @@ class InvoiceUploadManager {
                 
                 this.showProcessingProgress('Saving invoice data...', 95);
                 
-                // Save the invoice document to database
+                // Convert file to base64 for storage
+                const fileData = await this.convertFileToBase64(file);
+                
+                // Save the invoice document to database with file data
                 const invoiceDocData = {
                     type: 'purchase',
-                    supplier: this.processedData.supplier,
+                    supplier: supplierVerification.supplierCode, // Use verified supplier code
+                    supplierName: supplierVerification.supplierName,
                     fileName: file.name,
                     fileSize: file.size,
                     fileType: file.type,
+                    fileData: fileData, // Store the actual file data
                     invoiceNumber: this.processedData.invoice?.invoiceNumber || null,
                     date: this.processedData.invoice?.date || null,
                     totalAmount: this.processedData.invoice?.totalAmount || null,
+                    totalExcludingTax: this.processedData.invoice?.totalExcludingTax || null,
+                    taxAmount: this.processedData.invoice?.taxAmount || null,
+                    currency: this.processedData.invoice?.currency || 'ZAR',
+                    processingMethod: this.processedData.method || 'text-extraction',
                     rawText: this.processedData.rawText,
+                    rawResponse: this.processedData.rawResponse,
                     lineItemsCount: this.processedData.lineItems?.length || 0
                 };
 
