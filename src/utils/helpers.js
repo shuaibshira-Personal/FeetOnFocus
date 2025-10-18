@@ -16,19 +16,55 @@ function formatCurrency(amount, currency = 'ZAR') {
 }
 
 /**
+ * Parse date from various formats including DD/MM/YY
+ * @param {string} dateStr - Date string to parse
+ * @returns {Date|null} Parsed date or null if invalid
+ */
+function parseDate(dateStr) {
+    if (!dateStr) return null;
+    
+    // Handle DD/MM/YY format (e.g., "17/02/25")
+    const ddmmyyMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (ddmmyyMatch) {
+        let [, day, month, year] = ddmmyyMatch;
+        
+        // Convert 2-digit year to 4-digit (assume 20xx for years < 50, 19xx for >= 50)
+        if (year.length === 2) {
+            const yearNum = parseInt(year);
+            year = yearNum < 50 ? `20${year}` : `19${year}`;
+        }
+        
+        // Create date (month is 0-indexed)
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    
+    // Try standard JavaScript date parsing
+    const standardDate = new Date(dateStr);
+    return isNaN(standardDate.getTime()) ? null : standardDate;
+}
+
+/**
  * Format date for display
  * @param {string|Date} date - Date to format
  * @returns {string} Formatted date string
  */
 function formatDate(date) {
     if (!date) return '';
-    const d = new Date(date);
+    
+    let d;
+    if (typeof date === 'string') {
+        d = parseDate(date);
+        if (!d) return date; // Return original string if can't parse
+    } else {
+        d = date;
+    }
+    
+    if (isNaN(d.getTime())) return date; // Return original if invalid date
+    
     return d.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: 'numeric'
     });
 }
 

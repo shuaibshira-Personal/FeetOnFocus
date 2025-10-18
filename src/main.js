@@ -33,7 +33,9 @@ class FeetOnFocusApp {
                 { name: 'reportsManager', check: () => typeof reportsManager !== 'undefined' },
                 { name: 'purchaseManager', check: () => typeof purchaseManager !== 'undefined' },
                 { name: 'stockManager', check: () => typeof stockManager !== 'undefined' },
-                { name: 'bulkImportManager', check: () => typeof bulkImportManager !== 'undefined' }
+                { name: 'bulkImportManager', check: () => typeof bulkImportManager !== 'undefined' },
+                { name: 'invoiceUploadManager', check: () => typeof invoiceUploadManager !== 'undefined' },
+                { name: 'invoiceProcessor', check: () => typeof invoiceProcessor !== 'undefined' }
             ];
             
             const missingModules = [];
@@ -84,7 +86,8 @@ class FeetOnFocusApp {
                 reportsManager,
                 purchaseManager,
                 stockManager,
-                bulkImportManager
+                bulkImportManager,
+                invoiceUploadManager
             };
             
             for (const [name, manager] of Object.entries(managers)) {
@@ -166,6 +169,37 @@ class FeetOnFocusApp {
                 this.showTab(contentId);
             });
         });
+        
+        // Invoice section buttons
+        const uploadInvoiceBtn2 = document.getElementById('uploadInvoiceBtn2');
+        const purchaseHistoryBtn2 = document.getElementById('purchaseHistoryBtn2');
+        const invoiceReportsBtn = document.getElementById('invoiceReportsBtn');
+        
+        if (uploadInvoiceBtn2) {
+            uploadInvoiceBtn2.addEventListener('click', () => {
+                if (typeof invoiceUploadManager !== 'undefined') {
+                    invoiceUploadManager.showUploadInvoiceModal();
+                } else {
+                    showToast('Invoice upload feature not available', 'warning');
+                }
+            });
+        }
+        
+        if (purchaseHistoryBtn2) {
+            purchaseHistoryBtn2.addEventListener('click', () => {
+                if (typeof purchaseManager !== 'undefined') {
+                    purchaseManager.showPurchaseHistoryModal();
+                } else {
+                    showToast('Purchase history not available', 'warning');
+                }
+            });
+        }
+        
+        if (invoiceReportsBtn) {
+            invoiceReportsBtn.addEventListener('click', () => {
+                this.showTab('reports');
+            });
+        }
     }
 
     showTab(tabId) {

@@ -3,7 +3,7 @@
  * Provides native file system backup functionality
  */
 
-const { ipcRenderer } = require('electron');
+// Note: This file now uses the secure electronAPI exposed via preload.js
 
 class DesktopBackupHelper {
     /**
@@ -11,7 +11,7 @@ class DesktopBackupHelper {
      */
     static async saveBackupFile(fileName, data, type = 'auto') {
         try {
-            const result = await ipcRenderer.invoke('save-backup-file', fileName, data);
+            const result = await window.electronAPI.saveBackupFile(fileName, data);
             if (result.success) {
                 console.log(`✅ Desktop backup saved: ${result.path}`);
                 return result.path;
@@ -30,7 +30,7 @@ class DesktopBackupHelper {
      */
     static async exportBackupFile(fileName, data) {
         try {
-            const result = await ipcRenderer.invoke('export-backup-file', fileName, data);
+            const result = await window.electronAPI.exportBackupFile(fileName, data);
             if (result.success) {
                 console.log(`✅ Backup exported: ${result.path}`);
                 return result.path;
@@ -52,7 +52,7 @@ class DesktopBackupHelper {
      */
     static async listBackupFiles() {
         try {
-            const result = await ipcRenderer.invoke('list-backup-files');
+            const result = await window.electronAPI.listBackupFiles();
             if (result.success) {
                 return result.files;
             } else {
@@ -70,7 +70,7 @@ class DesktopBackupHelper {
      */
     static async readBackupFile(filePath) {
         try {
-            const result = await ipcRenderer.invoke('read-backup-file', filePath);
+            const result = await window.electronAPI.readBackupFile(filePath);
             if (result.success) {
                 return result.data;
             } else {
@@ -87,7 +87,7 @@ class DesktopBackupHelper {
      */
     static async deleteBackupFile(filePath) {
         try {
-            const result = await ipcRenderer.invoke('delete-backup-file', filePath);
+            const result = await window.electronAPI.deleteBackupFile(filePath);
             if (result.success) {
                 console.log(`✅ Backup deleted: ${filePath}`);
                 return true;
@@ -104,6 +104,6 @@ class DesktopBackupHelper {
      * Check if running in desktop mode
      */
     static isDesktopMode() {
-        return typeof require !== 'undefined' && ipcRenderer;
+        return typeof window !== 'undefined' && window.electronAPI;
     }
 }

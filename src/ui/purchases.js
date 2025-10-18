@@ -36,6 +36,18 @@ class PurchaseManager {
             this.exportPurchases();
         });
 
+        // Upload Invoice button
+        const uploadInvoiceBtn = document.getElementById('uploadInvoiceBtn');
+        if (uploadInvoiceBtn) {
+            uploadInvoiceBtn.addEventListener('click', () => {
+                if (window.invoiceUploadManager) {
+                    invoiceUploadManager.showUploadInvoiceModal();
+                } else {
+                    showToast('Invoice upload feature not available', 'warning');
+                }
+            });
+        }
+
         // Purchase details and edit click handlers
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('view-purchase-btn')) {

@@ -6,7 +6,7 @@
 class InventoryDatabase {
     constructor() {
         this.dbName = 'FeetOnFocusDB';
-        this.dbVersion = 5; // Incremented to add stockHistory object store
+        this.dbVersion = 6; // Incremented to add invoice document storage
         this.db = null;
     }
 
@@ -68,6 +68,20 @@ class InventoryDatabase {
                     invoicesStore.createIndex('date', 'date', { unique: false });
                     invoicesStore.createIndex('type', 'type', { unique: false }); // 'purchase' or 'sale'
                     invoicesStore.createIndex('supplier', 'supplier', { unique: false });
+                    invoicesStore.createIndex('invoiceNumber', 'invoiceNumber', { unique: false });
+                    invoicesStore.createIndex('status', 'status', { unique: false });
+                }
+                
+                // Create Invoice Line Items object store
+                if (!db.objectStoreNames.contains('invoiceLineItems')) {
+                    const lineItemsStore = db.createObjectStore('invoiceLineItems', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    
+                    lineItemsStore.createIndex('invoiceId', 'invoiceId', { unique: false });
+                    lineItemsStore.createIndex('itemId', 'itemId', { unique: false });
+                    lineItemsStore.createIndex('status', 'status', { unique: false }); // 'matched', 'pending', 'new'
                 }
                 
                 // Create Activity Log object store
@@ -1363,6 +1377,364 @@ class InventoryDatabase {
             request.onerror = () => {
                 reject(new Error('Failed to get category'));
             };
+        });
+    }
+
+    // INVOICE DOCUMENT MANAGEMENT METHODS
+
+    /**
+     * Save uploaded invoice document
+     * @param {Object} invoiceData - Invoice document data
+     * @returns {Promise<Object>} Created invoice document
+     */
+    async saveInvoiceDocument(invoiceData) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['invoices', 'activity'], 'readwrite');
+            const invoicesStore = transaction.objectStore('invoices');
+            const activityStore = transaction.objectStore('activity');
+            
+            const invoice = {
+                ...invoiceData,
+                status: 'processing', // processing, completed, failed
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            const addRequest = invoicesStore.add(invoice);
+            
+            addRequest.onsuccess = (event) => {
+                const invoiceId = event.target.result;
+                
+                // Log activity
+                activityStore.add({
+                    type: 'invoice_uploaded',
+                    description: `Uploaded invoice: ${invoice.invoiceNumber || 'Unknown'}`,
+                    timestamp: new Date().toISOString(),
+                    invoiceId: invoiceId
+                });
+                
+                resolve({ id: invoiceId, ...invoice });
+            };
+            
+            addRequest.onerror = () => {
+                reject(new Error('Failed to save invoice document'));
+            };
+        });
+    }
+
+    /**
+     * Update invoice document
+     * @param {number} invoiceId - Invoice ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<Object>} Updated invoice
+     */
+    async updateInvoiceDocument(invoiceId, updateData) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['invoices'], 'readwrite');
+            const store = transaction.objectStore('invoices');
+            
+            const getRequest = store.get(invoiceId);
+            
+            getRequest.onsuccess = () => {
+                const invoice = getRequest.result;
+                if (!invoice) {
+                    reject(new Error('Invoice not found'));
+                    return;
+                }
+                
+                const updatedInvoice = {
+                    ...invoice,
+                    ...updateData,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                const updateRequest = store.put(updatedInvoice);
+                
+                updateRequest.onsuccess = () => {
+                    resolve(updatedInvoice);
+                };
+                
+                updateRequest.onerror = () => {
+                    reject(new Error('Failed to update invoice'));
+                };
+            };
+        });
+    }
+
+    /**
+     * Get invoice document by ID
+     * @param {number} invoiceId - Invoice ID
+     * @returns {Promise<Object>} Invoice document
+     */
+    async getInvoiceDocument(invoiceId) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['invoices'], 'readonly');
+            const store = transaction.objectStore('invoices');
+            const request = store.get(invoiceId);
+            
+            request.onsuccess = () => {
+                resolve(request.result);
+            };
+            
+            request.onerror = () => {
+                reject(new Error('Failed to get invoice document'));
+            };
+        });
+    }
+
+    /**
+     * Get all invoice documents
+     * @returns {Promise<Array>} Array of invoice documents
+     */
+    async getAllInvoiceDocuments() {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['invoices'], 'readonly');
+            const store = transaction.objectStore('invoices');
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const invoices = request.result.sort((a, b) => 
+                    new Date(b.createdAt) - new Date(a.createdAt)
+                );
+                resolve(invoices);
+            };
+            
+            request.onerror = () => {
+                reject(new Error('Failed to get invoice documents'));
+            };
+        });
+    }
+
+    /**
+     * Save invoice line item
+     * @param {Object} lineItemData - Line item data
+     * @returns {Promise<Object>} Created line item
+     */
+    async saveInvoiceLineItem(lineItemData) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['invoiceLineItems'], 'readwrite');
+            const store = transaction.objectStore('invoiceLineItems');
+            
+            const lineItem = {
+                ...lineItemData,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            const addRequest = store.add(lineItem);
+            
+            addRequest.onsuccess = (event) => {
+                const lineItemId = event.target.result;
+                resolve({ id: lineItemId, ...lineItem });
+            };
+            
+            addRequest.onerror = () => {
+                reject(new Error('Failed to save line item'));
+            };
+        });
+    }
+
+    /**
+     * Update invoice line item
+     * @param {number} lineItemId - Line item ID
+     * @param {Object} updateData - Data to update
+     * @returns {Promise<Object>} Updated line item
+     */
+    async updateInvoiceLineItem(lineItemId, updateData) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['invoiceLineItems'], 'readwrite');
+            const store = transaction.objectStore('invoiceLineItems');
+            
+            const getRequest = store.get(lineItemId);
+            
+            getRequest.onsuccess = () => {
+                const lineItem = getRequest.result;
+                if (!lineItem) {
+                    reject(new Error('Line item not found'));
+                    return;
+                }
+                
+                const updatedLineItem = {
+                    ...lineItem,
+                    ...updateData,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                const updateRequest = store.put(updatedLineItem);
+                
+                updateRequest.onsuccess = () => {
+                    resolve(updatedLineItem);
+                };
+                
+                updateRequest.onerror = () => {
+                    reject(new Error('Failed to update line item'));
+                };
+            };
+        });
+    }
+
+    /**
+     * Get line items for an invoice
+     * @param {number} invoiceId - Invoice ID
+     * @returns {Promise<Array>} Array of line items
+     */
+    async getInvoiceLineItems(invoiceId) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['invoiceLineItems'], 'readonly');
+            const store = transaction.objectStore('invoiceLineItems');
+            const index = store.index('invoiceId');
+            const request = index.getAll(invoiceId);
+            
+            request.onsuccess = () => {
+                resolve(request.result);
+            };
+            
+            request.onerror = () => {
+                reject(new Error('Failed to get line items'));
+            };
+        });
+    }
+
+    /**
+     * Process invoice and create purchase records
+     * @param {number} invoiceId - Invoice ID
+     * @param {Array} processedLineItems - Array of processed line items
+     * @returns {Promise<Object>} Processing result
+     */
+    async processInvoiceIntoPurchases(invoiceId, processedLineItems) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const transaction = this.db.transaction([
+                    'invoices', 'invoiceLineItems', 'purchases', 'items', 'activity', 'stockHistory'
+                ], 'readwrite');
+                
+                const results = {
+                    purchasesCreated: 0,
+                    itemsCreated: 0,
+                    itemsUpdated: 0,
+                    errors: []
+                };
+                
+                // Get the invoice document
+                const invoice = await this.getInvoiceDocument(invoiceId);
+                if (!invoice) {
+                    throw new Error('Invoice document not found');
+                }
+                
+                for (const processedItem of processedLineItems) {
+                    try {
+                        let itemId = processedItem.itemId;
+                        
+                        // Create new item if needed
+                        if (processedItem.action === 'create_new' && processedItem.newItemData) {
+                            const newItem = await this.addItem(processedItem.newItemData);
+                            itemId = newItem.id;
+                            results.itemsCreated++;
+                        }
+                        
+                        // Update existing item if needed
+                        if (processedItem.action === 'update_existing' && processedItem.updateData) {
+                            await this.updateItem(itemId, processedItem.updateData);
+                            results.itemsUpdated++;
+                        }
+                        
+                        // Create purchase record
+                        const purchaseData = {
+                            itemId: itemId,
+                            itemName: processedItem.description || processedItem.itemName,
+                            itemSku: processedItem.code || null,
+                            supplier: invoice.supplier,
+                            quantity: processedItem.quantity,
+                            unitCost: processedItem.unitPrice,
+                            subtotal: processedItem.subtotal || (processedItem.unitPrice * processedItem.quantity),
+                            discountPercent: processedItem.discountPercent || 0,
+                            discountAmount: processedItem.discountAmount || 0,
+                            netCost: processedItem.netTotal || processedItem.totalPrice || (processedItem.unitPrice * processedItem.quantity),
+                            taxRate: processedItem.taxRate || 15,
+                            taxAmount: processedItem.taxAmount || 0,
+                            totalCost: processedItem.calculatedTotal || processedItem.totalPrice || (processedItem.unitPrice * processedItem.quantity),
+                            currency: processedItem.currency || 'ZAR',
+                            orderDate: invoice.date || new Date().toISOString().split('T')[0],
+                            invoiceReference: invoice.invoiceNumber,
+                            status: 'received', // Mark as received since it's from an invoice
+                            receivedDate: new Date().toISOString(),
+                            notes: `Imported from invoice ${invoice.invoiceNumber || invoice.fileName}${processedItem.discountPercent ? ` (${processedItem.discountPercent}% discount applied)` : ''}`
+                        };
+                        
+                        await this.createPurchase(purchaseData);
+                        results.purchasesCreated++;
+                        
+                        // Update stock if item exists
+                        if (itemId && processedItem.quantity > 0) {
+                            await this.recordStockPurchase(
+                                itemId,
+                                processedItem.quantity,
+                                processedItem.unitPrice,
+                                invoice.supplier,
+                                invoice.invoiceNumber
+                            );
+                        }
+                        
+                        // Save line item with final status
+                        await this.saveInvoiceLineItem({
+                            invoiceId: invoiceId,
+                            itemId: itemId,
+                            originalText: processedItem.originalText,
+                            description: processedItem.description,
+                            code: processedItem.code,
+                            quantity: processedItem.quantity,
+                            unitPrice: processedItem.unitPrice,
+                            subtotal: processedItem.subtotal,
+                            discountPercent: processedItem.discountPercent || 0,
+                            discountAmount: processedItem.discountAmount || 0,
+                            netTotal: processedItem.netTotal || processedItem.totalPrice,
+                            taxRate: processedItem.taxRate || 15,
+                            taxAmount: processedItem.taxAmount || 0,
+                            totalPrice: processedItem.totalPrice,
+                            calculatedTotal: processedItem.calculatedTotal,
+                            currency: processedItem.currency || 'ZAR',
+                            isValid: processedItem.isValid !== false,
+                            validationErrors: processedItem.validationErrors ? JSON.stringify(processedItem.validationErrors) : null,
+                            matchScore: processedItem.matchScore || 0,
+                            action: processedItem.action,
+                            status: 'processed'
+                        });
+                        
+                    } catch (error) {
+                        console.error('Error processing line item:', error);
+                        results.errors.push(`Line item "${processedItem.description}": ${error.message}`);
+                        
+                        // Save line item with error status
+                        try {
+                            await this.saveInvoiceLineItem({
+                                invoiceId: invoiceId,
+                                originalText: processedItem.originalText,
+                                description: processedItem.description,
+                                code: processedItem.code,
+                                quantity: processedItem.quantity,
+                                unitPrice: processedItem.unitPrice,
+                                totalPrice: processedItem.totalPrice,
+                                status: 'error',
+                                errorMessage: error.message
+                            });
+                        } catch (lineItemError) {
+                            console.error('Failed to save error line item:', lineItemError);
+                        }
+                    }
+                }
+                
+                // Update invoice status
+                await this.updateInvoiceDocument(invoiceId, {
+                    status: results.errors.length > 0 ? 'completed_with_errors' : 'completed',
+                    processedAt: new Date().toISOString(),
+                    processingResults: results
+                });
+                
+                resolve(results);
+                
+            } catch (error) {
+                reject(new Error('Failed to process invoice: ' + error.message));
+            }
         });
     }
 

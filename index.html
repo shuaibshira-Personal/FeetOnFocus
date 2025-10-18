@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FeetOnFocus - Inventory Management</title>
-    <link rel="icon" type="image/jpeg" href="assets/logo/FEET_LOGO round updated.jpg">
+    <link rel="icon" type="image/jpeg" href="assets/logo/FEET_LOGO_round_updated.jpg">
     <link rel="stylesheet" href="assets/styles/main.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -13,7 +13,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-feet-dark">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="assets/logo/FEET_LOGO round updated.jpg" alt="FeetOnFocus Logo" class="navbar-logo me-2">
+                <img src="assets/logo/FEET_LOGO_round_updated.jpg" alt="FeetOnFocus Logo" class="navbar-logo me-2" onerror="this.style.display='none'">
                 FeetOnFocus
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -79,6 +79,9 @@
                                 <i class="fas fa-receipt"></i> Purchase History
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="aiSettingsBtn">
+                                <i class="fas fa-robot"></i> AI Settings
+                            </a></li>
                             <li><a class="dropdown-item" href="#" id="aboutBtn">
                                 <i class="fas fa-info-circle"></i> About FeetOnFocus
                             </a></li>
@@ -349,14 +352,80 @@
                 </div>
             </div>
             
+            <!-- Quick Actions -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-primary">
+                        <div class="card-body text-center">
+                            <i class="fas fa-file-upload fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">Upload Invoice</h5>
+                            <p class="card-text">Upload and process purchase invoices automatically</p>
+                            <button class="btn btn-primary" id="uploadInvoiceBtn2">
+                                <i class="fas fa-upload me-1"></i>Upload
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <i class="fas fa-history fa-3x text-success mb-3"></i>
+                            <h5 class="card-title">Purchase History</h5>
+                            <p class="card-text">View and manage your purchase history</p>
+                            <button class="btn btn-success" id="purchaseHistoryBtn2">
+                                <i class="fas fa-receipt me-1"></i>View History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-info">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
+                            <h5 class="card-title">Reports</h5>
+                            <p class="card-text">Generate purchase and supplier reports</p>
+                            <button class="btn btn-info" id="invoiceReportsBtn">
+                                <i class="fas fa-chart-bar me-1"></i>Reports
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Invoice Processing Instructions -->
             <div class="card">
                 <div class="card-header">
-                    <h5>Invoice Processing (Phase 2)</h5>
+                    <h5><i class="fas fa-info-circle me-2"></i>How to Use Invoice Upload</h5>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        Invoice processing features will be implemented in Phase 2 of the project.
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-check-circle text-success me-2"></i>Supported Features:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i>Automatic supplier detection</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Line item extraction</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Product matching</li>
+                                <li><i class="fas fa-check text-success me-2"></i>New product creation</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Stock updates</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Purchase record creation</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-file text-primary me-2"></i>Supported File Types:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-image text-primary me-2"></i>JPG, PNG, GIF images</li>
+                                <li><i class="fas fa-file-pdf text-danger me-2"></i>PDF documents</li>
+                                <li><i class="fas fa-info-circle text-info me-2"></i>Maximum file size: 10MB</li>
+                            </ul>
+                            
+                            <h6 class="mt-3"><i class="fas fa-lightbulb text-warning me-2"></i>Tips for Best Results:</h6>
+                            <ul class="list-unstyled small">
+                                <li>• Ensure invoice text is clear and readable</li>
+                                <li>• Include supplier information in the invoice</li>
+                                <li>• Use high-quality scans or photos</li>
+                                <li>• Review and verify line item matches</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1684,21 +1753,593 @@
         </div>
     </div>
 
+    <!-- Invoice Upload Modal -->
+    <div class="modal fade" id="invoiceUploadModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-upload me-2"></i>Upload Invoice</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Step 1: Upload -->
+                    <div id="uploadStep">
+                        <form id="invoiceUploadForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="invoiceFileInput" class="form-label">
+                                            <i class="fas fa-file me-1"></i>Select Invoice File *
+                                        </label>
+                                        <input type="file" class="form-control" id="invoiceFileInput" 
+                                               accept=".jpg,.jpeg,.png,.gif,.pdf" required>
+                                        <div class="form-text">
+                                            Supported formats: JPG, PNG, GIF, PDF (Max 10MB)
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="invoiceSupplierSelect" class="form-label">
+                                            <i class="fas fa-truck me-1"></i>Supplier
+                                        </label>
+                                        <select class="form-select" id="invoiceSupplierSelect">
+                                            <option value="">🔍 Auto-detect from invoice</option>
+                                        </select>
+                                        <div class="form-text">
+                                            Leave as auto-detect to identify supplier from invoice content
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">File Preview</label>
+                                        <div id="filePreview" class="border rounded p-3 text-center" 
+                                             style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                                            <div class="text-muted">
+                                                <i class="fas fa-upload fa-3x mb-2"></i>
+                                                <br>Select a file to see preview
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Step 2: Review -->
+                    <div id="reviewStep" style="display: none;">
+                        <!-- Processing Results Summary -->
+                        <div id="processingResults" class="mb-4">
+                            <!-- Processing results will be populated here -->
+                        </div>
+                        
+                        <!-- Line Items Review -->
+                        <div class="mb-3">
+                            <h6><i class="fas fa-list me-2"></i>Review Line Items</h6>
+                            <p class="text-muted">Review each line item and ensure the product matches are correct.</p>
+                        </div>
+                        
+                        <div id="lineItemsReview">
+                            <!-- Line items will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <!-- Upload Step Footer -->
+                    <div id="uploadStepFooter">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary" id="processInvoiceBtn" disabled>
+                            <i class="fas fa-cogs me-2"></i>Process Invoice
+                        </button>
+                    </div>
+                    
+                    <!-- Review Step Footer -->
+                    <div id="reviewStepFooter" style="display: none;">
+                        <button type="button" class="btn btn-outline-secondary" id="backToUploadBtn">
+                            <i class="fas fa-arrow-left me-1"></i>Back
+                        </button>
+                        <button type="button" class="btn btn-success" id="confirmProcessingBtn">
+                            <i class="fas fa-check me-2"></i>Confirm & Process
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Match Modal -->
+    <div class="modal fade" id="productMatchModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-search me-2"></i>Find Product Match</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="productSearchInput" class="form-label">Search Products</label>
+                        <input type="text" class="form-control" id="productSearchInput" 
+                               placeholder="Search by name, SKU, or description...">
+                    </div>
+                    
+                    <div id="matchResults">
+                        <!-- Search results will be populated here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Training Modal -->
+    <div class="modal fade" id="invoiceTrainingModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-graduation-cap me-2"></i>Train AI for New Supplier: <span id="trainingSupplierName"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Invoice Text Display -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-file-text me-2"></i>Invoice Text</h6>
+                                </div>
+                                <div class="card-body">
+                                    <textarea id="trainingInvoiceText" class="form-control" rows="20" readonly></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Training Form -->
+                            <form id="invoiceTrainingForm">
+                                <!-- Basic Invoice Info -->
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6><i class="fas fa-info-circle me-2"></i>Invoice Information</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="trainingInvoiceNumber" class="form-label">Invoice Number</label>
+                                                    <input type="text" class="form-control" id="trainingInvoiceNumber" 
+                                                           placeholder="e.g., IN326587">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="trainingInvoiceDate" class="form-label">Invoice Date</label>
+                                                    <input type="text" class="form-control" id="trainingInvoiceDate" 
+                                                           placeholder="e.g., 15/10/24">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="trainingDateFormat" class="form-label">Date Format</label>
+                                                    <select class="form-select" id="trainingDateFormat">
+                                                        <option value="DD/MM/YY">DD/MM/YY</option>
+                                                        <option value="MM/DD/YY">MM/DD/YY</option>
+                                                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                                                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="trainingCurrency" class="form-label">Currency</label>
+                                                    <select class="form-select" id="trainingCurrency">
+                                                        <option value="ZAR">ZAR (South African Rand)</option>
+                                                        <option value="USD">USD (US Dollar)</option>
+                                                        <option value="EUR">EUR (Euro)</option>
+                                                        <option value="GBP">GBP (British Pound)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tax and Pricing Info -->
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6><i class="fas fa-calculator me-2"></i>Tax & Pricing</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="trainingTaxRate" class="form-label">Tax Rate (%)</label>
+                                                    <input type="number" class="form-control" id="trainingTaxRate" 
+                                                           value="15" min="0" max="50" step="0.1">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Do prices include tax?</label>
+                                                    <div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="radio" 
+                                                                   name="pricesIncludeTax" id="pricesIncludeTaxYes" value="true">
+                                                            <label class="form-check-label" for="pricesIncludeTaxYes">Yes</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="radio" 
+                                                                   name="pricesIncludeTax" id="pricesIncludeTaxNo" value="false">
+                                                            <label class="form-check-label" for="pricesIncludeTaxNo">No</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="trainingTotalExcludingTax" class="form-label">Total Excluding Tax</label>
+                                                    <input type="number" class="form-control" id="trainingTotalExcludingTax" 
+                                                           step="0.01" placeholder="e.g., 1500.00">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="trainingTotalIncludingTax" class="form-label">Total Including Tax</label>
+                                                    <input type="number" class="form-control" id="trainingTotalIncludingTax" 
+                                                           step="0.01" placeholder="e.g., 1725.00">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="trainingHasDiscounts">
+                                                <label class="form-check-label" for="trainingHasDiscounts">
+                                                    This invoice has discount columns
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Line Items Section -->
+                                <div class="card mb-3">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h6><i class="fas fa-list me-2"></i>Line Items</h6>
+                                        <button type="button" class="btn btn-sm btn-primary" id="addLineItemBtn">
+                                            <i class="fas fa-plus me-1"></i>Add Item
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="trainingLineItemCount" class="form-label">Number of Line Items</label>
+                                            <input type="number" class="form-control" id="trainingLineItemCount" 
+                                                   min="1" max="50" value="1" placeholder="How many products/line items?">
+                                        </div>
+                                        <div id="trainingLineItemsList">
+                                            <!-- Dynamic line items will be added here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="me-auto">
+                        <div class="text-muted small">
+                            <i class="fas fa-info-circle me-1"></i>This training will be used to extract similar invoices automatically.
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" id="aiAutoFillBtn">
+                        <i class="fas fa-magic me-1"></i>AI Auto-Fill
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-success" id="startTrainingBtn">
+                        <i class="fas fa-brain me-1"></i>Train AI
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Training Progress Modal -->
+    <div class="modal fade" id="trainingProgressModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-cogs me-2"></i>Training AI Algorithm
+                    </h5>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-4">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Training...</span>
+                        </div>
+                    </div>
+                    <h6 id="trainingProgressTitle">Analyzing Invoice Pattern...</h6>
+                    <div class="progress mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" id="trainingProgressBar" style="width: 0%"></div>
+                    </div>
+                    <div id="trainingProgressText" class="text-muted">
+                        Please wait while the AI learns from your annotations...
+                    </div>
+                    <div id="trainingResults" class="mt-4" style="display: none;">
+                        <!-- Training results will be displayed here -->
+                    </div>
+                </div>
+                <div class="modal-footer" id="trainingProgressFooter" style="display: none;">
+                    <button type="button" class="btn btn-secondary" id="trainingCancelBtn">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-success" id="trainingCompleteBtn" style="display: none;">
+                        <i class="fas fa-check me-1"></i>Complete Training
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Settings Modal -->
+    <div class="modal fade" id="aiSettingsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-robot me-2"></i>AI Settings - Enhanced Invoice Processing
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-magic me-2"></i>New Feature: AI Vision Processing</h6>
+                        <p class="mb-2">Enable direct PDF/image analysis using Google Gemini Vision AI for more accurate invoice extraction.</p>
+                        <ul class="mb-0">
+                            <li><strong>✅ No text extraction needed</strong> - AI reads PDFs directly</li>
+                            <li><strong>🎯 Better accuracy</strong> - Understands visual layout and context</li>
+                            <li><strong>🆓 Free to use</strong> - Google Gemini free tier included</li>
+                            <li><strong>🚀 Faster training</strong> - One-click supplier learning</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Current Method -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6><i class="fas fa-cog me-2"></i>Current Processing Method</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="processingMethod" id="textExtractionMethod" value="text" checked>
+                                <label class="form-check-label" for="textExtractionMethod">
+                                    <strong>Text Extraction + Local AI</strong> (Current)
+                                </label>
+                            </div>
+                            <div class="text-muted small ms-4">
+                                Uses PDF.js/OCR to extract text, then processes with local Ollama AI
+                            </div>
+                            
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="radio" name="processingMethod" id="visionMethod" value="vision">
+                                <label class="form-check-label" for="visionMethod">
+                                    <strong>AI Vision Processing</strong> (New - Recommended)
+                                </label>
+                            </div>
+                            <div class="text-muted small ms-4">
+                                Sends PDF/image directly to Google Gemini Vision for analysis
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gemini API Key Configuration -->
+                    <div class="card" id="geminiApiConfig" style="display: none;">
+                        <div class="card-header bg-primary text-white">
+                            <h6><i class="fas fa-key me-2"></i>Google Gemini API Configuration</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-8">
+                                    <label for="geminiApiKey" class="form-label">API Key</label>
+                                    <input type="password" class="form-control" id="geminiApiKey" 
+                                           placeholder="Enter your Gemini API key">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div>
+                                        <button type="button" class="btn btn-primary" id="testApiKeyBtn">
+                                            <i class="fas fa-check me-1"></i>Test Key
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="apiKeyStatus" class="mb-3" style="display: none;"></div>
+                            
+                            <div class="accordion" id="apiKeyInstructions">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" 
+                                                data-bs-toggle="collapse" data-bs-target="#instructionsCollapse">
+                                            <i class="fas fa-question-circle me-2"></i>How to get a free API key
+                                        </button>
+                                    </h2>
+                                    <div id="instructionsCollapse" class="accordion-collapse collapse">
+                                        <div class="accordion-body">
+                                            <ol>
+                                                <li>Go to <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-decoration-none">
+                                                    https://makersuite.google.com/app/apikey <i class="fas fa-external-link-alt"></i></a></li>
+                                                <li>Sign in with your Google account</li>
+                                                <li>Click "Create API Key in new project" or "Create API Key"</li>
+                                                <li>Copy the generated API key</li>
+                                                <li>Paste it in the field above and click "Test Key"</li>
+                                            </ol>
+                                            
+                                            <div class="alert alert-success mt-3">
+                                                <strong>🆓 Free Tier Limits:</strong><br>
+                                                • 60 requests per minute<br>
+                                                • 1000 requests per day<br>
+                                                • Perfect for personal/small business use
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Status Display -->
+                    <div class="mt-4">
+                        <h6>Current Status:</h6>
+                        <div id="aiMethodStatus" class="alert alert-secondary">
+                            <i class="fas fa-info-circle me-2"></i>Using text extraction with local AI (Ollama)
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="saveAiSettingsBtn">
+                        <i class="fas fa-save me-1"></i>Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Product Modal -->
+    <div class="modal fade" id="createProductModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Create New Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createProductForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="newProductName" class="form-label">Product Name *</label>
+                                    <input type="text" class="form-control" id="newProductName" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="newProductSku" class="form-label">SKU</label>
+                                    <input type="text" class="form-control" id="newProductSku">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="newProductSupplier" class="form-label">Supplier *</label>
+                                    <select class="form-select" id="newProductSupplier" required>
+                                        <option value="">Select Supplier</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="newProductCategory" class="form-label">Category</label>
+                                    <select class="form-select" id="newProductCategory">
+                                        <option value="">Select Category</option>
+                                        <option value="orthotic_materials">Orthotic Materials</option>
+                                        <option value="footwear">Footwear</option>
+                                        <option value="instruments">Instruments</option>
+                                        <option value="consumables">Consumables</option>
+                                        <option value="equipment">Equipment</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="newProductItemType" class="form-label">Item Type *</label>
+                                    <select class="form-select" id="newProductItemType" required>
+                                        <option value="reselling">Reselling Item</option>
+                                        <option value="consumable">Consumable</option>
+                                        <option value="office_equipment">Office Equipment</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="newProductCostPrice" class="form-label">Cost Price *</label>
+                                    <input type="number" class="form-control" id="newProductCostPrice" 
+                                           step="0.01" min="0" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="newProductSellingPrice" class="form-label">Selling Price</label>
+                                    <input type="number" class="form-control" id="newProductSellingPrice" 
+                                           step="0.01" min="0">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="newProductLowStockThreshold" class="form-label">Low Stock Threshold</label>
+                                    <input type="number" class="form-control" id="newProductLowStockThreshold" 
+                                           min="0" value="5">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="newProductDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="newProductDescription" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-success" id="saveNewProductBtn">
+                        <i class="fas fa-check me-2"></i>Create Product
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- SheetJS for Excel export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
+    <!-- PDF.js for PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    
     <!-- Desktop Backup Helper (for Electron) -->
     <script>
-        if (typeof require !== 'undefined') {
-            document.write('<script src="electron/backup-helper.js"><\/script>');
+        // Check if running in Electron with secure context bridge
+        if (typeof window !== 'undefined' && window.electronAPI) {
+            const script = document.createElement('script');
+            script.src = 'electron/backup-helper.js';
+            document.head.appendChild(script);
         }
     </script>
     
     <!-- Application Scripts -->
     <script src="src/database/database.js"></script>
     <script src="src/utils/helpers.js"></script>
+    <script src="src/utils/supplierProfiles.js"></script>
+    <script src="src/utils/supplierLearningManager.js"></script>
+    <script src="src/utils/aiInvoiceProcessor.js"></script>
+    <script src="src/utils/aiVisionInvoiceProcessor.js"></script>
+    <script src="src/utils/invoiceProcessor.js"></script>
     <script src="src/ui/dashboard.js"></script>
     <script src="src/ui/items.js"></script>
     <script src="src/ui/suppliers.js"></script>
@@ -1708,6 +2349,9 @@
     <script src="src/ui/purchases.js"></script>
     <script src="src/ui/stockManager.js"></script>
     <script src="src/ui/bulkImport.js"></script>
+    <script src="src/ui/invoiceTraining.js"></script>
+    <script src="src/ui/invoiceUpload.js"></script>
+    <script src="src/ui/aiSettings.js"></script>
     <script src="src/main.js"></script>
 </body>
 </html>

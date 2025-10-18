@@ -1,0 +1,3 @@
+# This is a placeholder file. 
+# The actual logo should be "FEET_LOGO_round_updated.jpg"
+# For now, the app will display without the logo image.

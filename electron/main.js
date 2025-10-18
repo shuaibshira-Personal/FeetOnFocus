@@ -13,11 +13,12 @@ function createWindow() {
         minWidth: 1200,
         minHeight: 700,
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-            enableRemoteModule: true
+            nodeIntegration: false,
+            contextIsolation: true,
+            enableRemoteModule: false,
+            preload: path.join(__dirname, 'preload.js')
         },
-        icon: path.join(__dirname, '../assets/logo/FEET_LOGO round updated.jpg'),
+        icon: path.join(__dirname, '../assets/logo/FEET_LOGO_round_updated.jpg'),
         show: false // Don't show until ready
     });
 

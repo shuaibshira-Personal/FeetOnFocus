@@ -56,5 +56,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }
+  },
+  "dependencies": {
+    "@google/genai": "^1.25.0"
   }
 }
