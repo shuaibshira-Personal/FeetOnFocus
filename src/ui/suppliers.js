@@ -193,8 +193,11 @@ class SuppliersManager {
                     </span>
                 </td>
                 <td>
-                    <div class="fw-bold">${supplier.name}</div>
-                    ${supplier.isDefault ? '<small class="text-muted">Default Supplier</small>' : ''}
+                    <div class="fw-bold">
+                        ${supplier.name}
+                        ${supplier.isDefault ? '<i class="fas fa-shield-alt text-warning ms-1" title="Default Supplier"></i>' : ''}
+                    </div>
+                    ${supplier.isDefault ? '<small class="text-warning">Default Supplier</small>' : ''}
                 </td>
                 <td><code>${supplier.code}</code></td>
                 <td>${supplier.description || '<span class="text-muted">No description</span>'}</td>
@@ -214,14 +217,16 @@ class SuppliersManager {
                         <button type="button" class="btn btn-outline-primary" onclick="suppliersManager.viewSupplier(${supplier.id})" title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
+                        <button type="button" class="btn btn-outline-warning" onclick="suppliersManager.editSupplier(${supplier.id})" title="Edit Supplier">
+                            <i class="fas fa-edit"></i>
+                        </button>
                         ${!supplier.isDefault ? 
-                            `<button type="button" class="btn btn-outline-warning" onclick="suppliersManager.editSupplier(${supplier.id})" title="Edit Supplier">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-danger" onclick="suppliersManager.deleteSupplier(${supplier.id})" title="Delete Supplier">
+                            `<button type="button" class="btn btn-outline-danger" onclick="suppliersManager.deleteSupplier(${supplier.id})" title="Delete Supplier">
                                 <i class="fas fa-trash"></i>
                             </button>` : 
-                            `<span class="text-muted small">Default supplier</span>`
+                            `<button type="button" class="btn btn-outline-secondary" disabled title="Cannot delete default supplier">
+                                <i class="fas fa-shield-alt"></i>
+                            </button>`
                         }
                     </div>
                 </td>
@@ -240,8 +245,11 @@ class SuppliersManager {
                     </span>
                 </td>
                 <td>
-                    <div class="fw-bold">${supplier.name}</div>
-                    ${supplier.isDefault ? '<small class="text-muted">Default Supplier</small>' : ''}
+                    <div class="fw-bold">
+                        ${supplier.name}
+                        ${supplier.isDefault ? '<i class="fas fa-shield-alt text-warning ms-1" title="Default Supplier"></i>' : ''}
+                    </div>
+                    ${supplier.isDefault ? '<small class="text-warning">Default Supplier</small>' : ''}
                 </td>
                 <td><code>${supplier.code}</code></td>
                 <td>${supplier.description || '<span class="text-muted">No description</span>'}</td>
@@ -261,14 +269,16 @@ class SuppliersManager {
                         <button type="button" class="btn btn-outline-primary" onclick="suppliersManager.viewSupplier(${supplier.id})" title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
+                        <button type="button" class="btn btn-outline-warning" onclick="suppliersManager.editSupplier(${supplier.id})" title="Edit Supplier">
+                            <i class="fas fa-edit"></i>
+                        </button>
                         ${!supplier.isDefault ? 
-                            `<button type="button" class="btn btn-outline-warning" onclick="suppliersManager.editSupplier(${supplier.id})" title="Edit Supplier">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-danger" onclick="suppliersManager.deleteSupplier(${supplier.id})" title="Delete Supplier">
+                            `<button type="button" class="btn btn-outline-danger" onclick="suppliersManager.deleteSupplier(${supplier.id})" title="Delete Supplier">
                                 <i class="fas fa-trash"></i>
                             </button>` : 
-                            `<span class="text-muted small">Default supplier</span>`
+                            `<button type="button" class="btn btn-outline-secondary" disabled title="Cannot delete default supplier">
+                                <i class="fas fa-shield-alt"></i>
+                            </button>`
                         }
                     </div>
                 </td>
@@ -422,9 +432,9 @@ class SuppliersManager {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            ${!supplier.isDefault ? 
-                                `<button type="button" class="btn btn-warning" onclick="suppliersManager.editSupplier(${supplier.id}); bootstrap.Modal.getInstance(document.getElementById('supplierDetailsModal')).hide();">Edit</button>` : 
-                                ''}
+                            <button type="button" class="btn btn-warning" onclick="suppliersManager.editSupplier(${supplier.id}); bootstrap.Modal.getInstance(document.getElementById('supplierDetailsModal')).hide();">
+                                <i class="fas fa-edit me-1"></i>Edit Supplier
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -503,10 +513,7 @@ class SuppliersManager {
                 return;
             }
 
-            if (supplier.isDefault) {
-                showToast('Cannot edit default suppliers', 'warning');
-                return;
-            }
+            // Default suppliers can now be edited (but not deleted)
 
             this.showEditSupplierModal(supplier);
             
@@ -517,11 +524,35 @@ class SuppliersManager {
     }
 
     showEditSupplierModal(supplier) {
-        const modal = new bootstrap.Modal(document.getElementById('editSupplierModal'));
+        const modalElement = document.getElementById('editSupplierModal');
+        const modal = new bootstrap.Modal(modalElement);
         const form = document.getElementById('editSupplierForm');
+        
+        // Find and hide any currently open modals to avoid z-index issues
+        const openModals = document.querySelectorAll('.modal.show');
+        const hiddenModals = [];
+        
+        openModals.forEach(openModal => {
+            const modalInstance = bootstrap.Modal.getInstance(openModal);
+            if (modalInstance && openModal.id !== 'editSupplierModal') {
+                modalInstance.hide();
+                hiddenModals.push(openModal.id);
+            }
+        });
+        
+        // Store reference to hidden modals for restoration
+        modalElement.setAttribute('data-hidden-modals', JSON.stringify(hiddenModals));
         
         // Reset form validation
         clearFormValidation(form);
+        
+        // Update modal title to indicate if this is a default supplier
+        const modalTitle = document.querySelector('#editSupplierModal .modal-title');
+        if (supplier.isDefault) {
+            modalTitle.innerHTML = `<i class="fas fa-shield-alt me-2 text-warning"></i>Edit Default Supplier`;
+        } else {
+            modalTitle.innerHTML = 'Edit Supplier';
+        }
         
         // Populate form with current supplier data
         document.getElementById('editSupplierId').value = supplier.id;
@@ -531,6 +562,61 @@ class SuppliersManager {
         document.getElementById('editColorPreview').style.backgroundColor = supplier.color;
         document.getElementById('editSupplierDescription').value = supplier.description || '';
         document.getElementById('editSupplierWebsite').value = supplier.website || '';
+        
+        // For default suppliers, disable code editing and add warning
+        const codeInput = document.getElementById('editSupplierCode');
+        const codeContainer = codeInput.closest('.mb-3');
+        
+        if (supplier.isDefault) {
+            codeInput.disabled = true;
+            codeInput.title = 'Supplier code cannot be changed for default suppliers';
+            
+            // Add warning if not already present
+            let warning = codeContainer.querySelector('.default-supplier-warning');
+            if (!warning) {
+                warning = document.createElement('small');
+                warning.className = 'text-warning default-supplier-warning';
+                warning.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Supplier code cannot be changed for default suppliers';
+                codeContainer.appendChild(warning);
+            }
+        } else {
+            codeInput.disabled = false;
+            codeInput.title = '';
+            
+            // Remove warning if present
+            const warning = codeContainer.querySelector('.default-supplier-warning');
+            if (warning) {
+                warning.remove();
+            }
+        }
+        
+        // Handle restoring previously hidden modals when edit modal is closed
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            const hiddenModalsData = modalElement.getAttribute('data-hidden-modals');
+            if (hiddenModalsData) {
+                const hiddenModalIds = JSON.parse(hiddenModalsData);
+                
+                // Restore the first hidden modal (usually manageSuppliersModal)
+                setTimeout(() => {
+                    hiddenModalIds.forEach(modalId => {
+                        const modalElement = document.getElementById(modalId);
+                        if (modalElement) {
+                            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                            if (modalInstance) {
+                                modalInstance.show();
+                            } else {
+                                // Create new instance if needed
+                                const newModal = new bootstrap.Modal(modalElement);
+                                newModal.show();
+                            }
+                        }
+                    });
+                    
+                    // Clear the stored data
+                    modalElement.removeAttribute('data-hidden-modals');
+                }, 150); // Small delay to ensure smooth transition
+            }
+        }, { once: true }); // Only run once per modal hide
         
         modal.show();
     }
@@ -554,11 +640,14 @@ class SuppliersManager {
             return;
         }
         
+        // For default suppliers, preserve the original code
+        const finalSupplierCode = currentSupplier.isDefault ? currentSupplier.code : supplierCode;
+        
         // Validate unique name and code (excluding current supplier)
         const existingSupplier = this.suppliers.find(s => 
             s.id !== supplierId && (
                 s.name.toLowerCase() === supplierName.toLowerCase() || 
-                s.code.toLowerCase() === supplierCode.toLowerCase()
+                (finalSupplierCode !== currentSupplier.code && s.code.toLowerCase() === finalSupplierCode.toLowerCase())
             )
         );
         
@@ -570,19 +659,27 @@ class SuppliersManager {
         try {
             const supplierData = {
                 name: supplierName,
-                code: supplierCode,
+                code: finalSupplierCode,
                 color: document.getElementById('editSupplierColor').value,
                 description: document.getElementById('editSupplierDescription').value.trim() || null,
                 website: document.getElementById('editSupplierWebsite').value.trim() || null
             };
+            
+            // Add success message context for default suppliers
+            const successMessage = currentSupplier.isDefault ? 
+                'Default supplier updated successfully' : 
+                'Supplier updated successfully';
 
             await inventoryDB.updateSupplier(supplierId, supplierData);
             
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('editSupplierModal')).hide();
+            // Close modal and refresh data
+            const editModal = bootstrap.Modal.getInstance(document.getElementById('editSupplierModal'));
+            editModal.hide();
             
             // Refresh suppliers list
             await this.loadSuppliers();
+            
+            // The manage suppliers modal will be automatically restored by the hidden.bs.modal event
             
             // Update items UI supplier options
             if (window.itemsManager) {
@@ -594,7 +691,7 @@ class SuppliersManager {
                 await dashboard.refreshStats();
             }
             
-            showToast('Supplier updated successfully', 'success');
+            showToast(successMessage, 'success');
             
         } catch (error) {
             console.error('Error updating supplier:', error);
