@@ -41,6 +41,7 @@ class SimplyBluExport {
                             <div class="alert alert-info">
                                 <strong>Export Fields:</strong>
                                 <ul class="mb-0">
+                                    <li>Name - Product name</li>
                                     <li>Category - From item category</li>
                                     <li>Description - From item description</li>
                                     <li>SalesChannel - Set to "instore"</li>
@@ -99,12 +100,13 @@ class SimplyBluExport {
             }
 
             // Create new workbook with SimplyBlu headers
-            const headers = ['Category', 'Description', 'SalesChannel', 'SellingPrice', 'CostPrice', 'IsStockTrackable', 'SKU', 'Barcode', 'StockCount', 'LowStock'];
+            const headers = ['Name', 'Category', 'Description', 'SalesChannel', 'SellingPrice', 'CostPrice', 'IsStockTrackable', 'SKU', 'Barcode', 'StockCount', 'LowStock'];
             const data = [headers];
 
             // Add items to data
             for (const item of resellingItems) {
                 const row = [
+                    item.name || '',                               // Name
                     item.category || '',                           // Category
                     item.description || '',                        // Description
                     'instore',                                     // SalesChannel (always instore)
@@ -124,6 +126,7 @@ class SimplyBluExport {
             
             // Set column widths for better readability
             worksheet['!cols'] = [
+                { wch: 25 }, // Name
                 { wch: 20 }, // Category
                 { wch: 30 }, // Description
                 { wch: 15 }, // SalesChannel
