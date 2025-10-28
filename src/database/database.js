@@ -6,7 +6,7 @@
 class InventoryDatabase {
     constructor() {
         this.dbName = 'FeetOnFocusDB';
-        this.dbVersion = 6; // Incremented to add invoice document storage
+        this.dbVersion = 8; // Incremented to add Courier & Shipping category
         this.db = null;
     }
 
@@ -160,11 +160,75 @@ class InventoryDatabase {
                         { name: 'Instruments', code: 'instruments', color: '#3F51B5', description: 'Medical instruments and tools', isDefault: true },
                         { name: 'Consumables', code: 'consumables', color: '#4CAF50', description: 'Disposable medical supplies', isDefault: true },
                         { name: 'Equipment', code: 'equipment', color: '#FF9800', description: 'Medical equipment and devices', isDefault: true },
+                        { name: 'Courier & Shipping', code: 'courier_shipping', color: '#795548', description: 'Delivery fees and shipping costs', isDefault: true },
                         { name: 'Other', code: 'other', color: '#6c757d', description: 'Miscellaneous items', isDefault: true }
                     ];
                     
                     // Mark for initialization after database is ready
                     this._defaultCategoriesToInit = defaultCategories;
+                }
+                
+                // Upgrade existing items for packaging system (v6 -> v7)
+                if (event.oldVersion < 7 && db.objectStoreNames.contains('items')) {
+                    console.log('🔄 Upgrading items for packaging system...');
+                    const itemsStore = event.target.transaction.objectStore('items');
+                    const itemsRequest = itemsStore.getAll();
+                    
+                    itemsRequest.onsuccess = () => {
+                        const items = itemsRequest.result;
+                        items.forEach(item => {
+                            // Add default packaging fields if not present
+                            if (item.packSize === undefined) {
+                                item.packSize = 1; // Default to single unit
+                            }
+                            if (item.packType === undefined) {
+                                item.packType = 'single'; // single, pack
+                            }
+                            if (item.sellIndividually === undefined) {
+                                item.sellIndividually = true; // Default to selling individually
+                            }
+                            if (item.individualPrice === undefined) {
+                                // Set individual price same as current purchase price
+                                item.individualPrice = item.purchasePrice || 0;
+                            }
+                            if (item.packPrice === undefined) {
+                                // Set pack price same as current purchase price
+                                item.packPrice = item.purchasePrice || 0;
+                            }
+                            
+                            item.updatedAt = new Date().toISOString();
+                            
+                            // Save the updated item
+                            itemsStore.put(item);
+                        });
+                    };
+                }
+                
+                // Add new categories for existing databases (v7 -> v8)
+                if (event.oldVersion < 8 && db.objectStoreNames.contains('categories')) {
+                    console.log('🔄 Adding new categories: Courier & Shipping...');
+                    const categoriesStore = event.target.transaction.objectStore('categories');
+                    
+                    // Check if Courier & Shipping category already exists
+                    const courierRequest = categoriesStore.index('code').get('courier_shipping');
+                    courierRequest.onsuccess = () => {
+                        if (!courierRequest.result) {
+                            // Add the new category
+                            const newCategory = {
+                                name: 'Courier & Shipping',
+                                code: 'courier_shipping',
+                                color: '#795548',
+                                description: 'Delivery fees and shipping costs',
+                                isDefault: true,
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString()
+                            };
+                            categoriesStore.add(newCategory);
+                            console.log('✅ Added Courier & Shipping category');
+                        } else {
+                            console.log('ℹ️ Courier & Shipping category already exists');
+                        }
+                    };
                 }
                 
             };
@@ -1689,9 +1753,9 @@ class InventoryDatabase {
                         await this.createPurchase(purchaseData);
                         results.purchasesCreated++;
                         
-                        // Update stock if item exists
+                        // Update stock if item exists - using packaging-aware calculation
                         if (itemId && processedItem.quantity > 0) {
-                            await this.recordStockPurchase(
+                            await this.recordStockPurchaseWithPackaging(
                                 itemId,
                                 processedItem.quantity,
                                 processedItem.unitPrice,
@@ -2003,13 +2067,163 @@ class InventoryDatabase {
             
             console.log('All data cleared from database');
         } catch (error) {
-            console.error('Error clearing database:', error);
+            console.error('Error clearing data:', error);
+            throw error;
+        }
+    }
+
+    // PACKAGING SYSTEM METHODS
+
+    /**
+     * Calculate stock units based on packaging info
+     * @param {Object} item - Item with packaging info
+     * @param {number} purchaseQuantity - Quantity purchased (packs or units)
+     * @returns {Object} Calculated stock information
+     */
+    calculateStockFromPurchase(item, purchaseQuantity) {
+        const packSize = item.packSize || 1;
+        const packType = item.packType || 'single';
+        const sellIndividually = item.sellIndividually !== false;
+        
+        let stockUnits, costPerUnit, totalCost;
+        
+        if (packType === 'pack' && packSize > 1) {
+            // Item is sold in packs (invoice quantity represents packs)
+            if (sellIndividually) {
+                // But can be sold individually - stock tracks individual units
+                stockUnits = purchaseQuantity * packSize; // Convert packs to individual units
+                costPerUnit = (item.packPrice || 0) / packSize; // Cost per individual unit
+                totalCost = purchaseQuantity * (item.packPrice || 0);
+            } else {
+                // Only sold by pack - stock tracks packs
+                stockUnits = purchaseQuantity;
+                costPerUnit = item.packPrice || 0;
+                totalCost = purchaseQuantity * costPerUnit;
+            }
+        } else {
+            // Item is sold as individual units
+            stockUnits = purchaseQuantity;
+            costPerUnit = item.individualPrice || item.purchasePrice || 0;
+            totalCost = purchaseQuantity * costPerUnit;
+        }
+        
+        return {
+            stockUnits,      // Total units to add to stock (individual units if sold separately)
+            costPerUnit,     // Cost per stock unit
+            totalCost,       // Total purchase cost
+            packsPurchased: packType === 'pack' ? purchaseQuantity : Math.ceil(purchaseQuantity / packSize)
+        };
+    }
+
+    /**
+     * Calculate sale information based on packaging
+     * @param {Object} item - Item with packaging info
+     * @param {number} saleQuantity - Quantity being sold
+     * @param {string} saleUnit - 'individual' or 'pack'
+     * @returns {Object} Sale calculation information
+     */
+    calculateSaleUnits(item, saleQuantity, saleUnit = 'individual') {
+        const packSize = item.packSize || 1;
+        const sellIndividually = item.sellIndividually !== false;
+        
+        let stockUnitsToDeduct, salePrice, revenue;
+        
+        if (saleUnit === 'pack' && packSize > 1) {
+            // Selling by pack
+            stockUnitsToDeduct = saleQuantity * packSize;
+            salePrice = item.packPrice || (item.individualPrice || 0) * packSize;
+            revenue = saleQuantity * salePrice;
+        } else {
+            // Selling individually
+            if (!sellIndividually) {
+                throw new Error('This item cannot be sold individually');
+            }
+            stockUnitsToDeduct = saleQuantity;
+            salePrice = item.individualPrice || item.purchasePrice || 0;
+            revenue = saleQuantity * salePrice;
+        }
+        
+        return {
+            stockUnitsToDeduct,  // Units to remove from stock
+            salePrice,           // Price per unit/pack
+            revenue,             // Total sale revenue
+            unitType: saleUnit   // 'individual' or 'pack'
+        };
+    }
+
+    /**
+     * Get packaging display information for an item
+     * @param {Object} item - Item with packaging info
+     * @returns {Object} Display information
+     */
+    getPackagingDisplay(item) {
+        const packSize = item.packSize || 1;
+        const packType = item.packType || 'single';
+        const sellIndividually = item.sellIndividually !== false;
+        
+        let packagingInfo = {
+            isPack: packType === 'pack' && packSize > 1,
+            packSize,
+            packType,
+            sellIndividually,
+            displayText: '',
+            stockDisplayText: '',
+            priceDisplayText: ''
+        };
+        
+        if (packagingInfo.isPack) {
+            packagingInfo.displayText = `${packSize}-pack`;
+            packagingInfo.stockDisplayText = `(${packSize} units per pack)`;
+            
+            if (sellIndividually) {
+                packagingInfo.priceDisplayText = `Pack: ${formatCurrency(item.packPrice || 0)} | Individual: ${formatCurrency(item.individualPrice || 0)}`;
+            } else {
+                packagingInfo.priceDisplayText = `Pack only: ${formatCurrency(item.packPrice || 0)}`;
+            }
+        } else {
+            packagingInfo.displayText = 'Individual';
+            packagingInfo.priceDisplayText = formatCurrency(item.individualPrice || item.purchasePrice || 0);
+        }
+        
+        return packagingInfo;
+    }
+
+    /**
+     * Update stock with packaging calculations
+     * @param {number} itemId - Item ID
+     * @param {number} quantity - Purchase quantity
+     * @param {number} unitCost - Cost per pack/unit as purchased
+     * @param {string} supplier - Supplier code
+     * @param {string} reference - Reference (invoice number, etc.)
+     */
+    async recordStockPurchaseWithPackaging(itemId, quantity, unitCost, supplier, reference) {
+        try {
+            const item = await this.getItemById(itemId);
+            if (!item) {
+                throw new Error('Item not found');
+            }
+            
+            // Calculate actual stock units based on packaging
+            const stockCalc = this.calculateStockFromPurchase(item, quantity);
+            
+            // Record the stock movement using calculated units
+            await this.recordStockPurchase(
+                itemId,
+                stockCalc.stockUnits, // Use calculated stock units
+                stockCalc.costPerUnit, // Use calculated cost per unit
+                supplier,
+                reference + (stockCalc.packsPurchased > quantity ? ` (${stockCalc.packsPurchased} packs → ${stockCalc.stockUnits} units)` : '')
+            );
+            
+            return stockCalc;
+        } catch (error) {
+            console.error('Error recording stock purchase with packaging:', error);
             throw error;
         }
     }
 
     /**
-     * Create manual backup to localStorage with timestamp
+     * Create manual backup
      */
     async createManualBackup() {
         try {

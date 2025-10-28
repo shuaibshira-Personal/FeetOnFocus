@@ -65,6 +65,10 @@ class InvoiceUploadManager {
                 const productId = parseInt(e.target.getAttribute('data-product-id'));
                 this.selectProductMatch(lineItemIndex, productId);
             }
+            if (e.target.classList.contains('mark-expense-btn')) {
+                const lineItemIndex = parseInt(e.target.getAttribute('data-index'));
+                this.markItemAsExpense(lineItemIndex);
+            }
         });
 
         // Save new product button
@@ -494,7 +498,11 @@ class InvoiceUploadManager {
                                 </tr>
                                 <tr>
                                     <td><strong>New Products:</strong></td>
-                                    <td><span class="badge bg-info">${data.lineItems.filter(item => item.isNewProduct).length}</span></td>
+                                    <td><span class="badge bg-info">${data.lineItems.filter(item => item.isNewProduct && !item.isExpense).length}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Expenses/Services:</strong></td>
+                                    <td><span class="badge bg-warning text-dark">${data.lineItems.filter(item => item.isExpense).length}</span></td>
                                 </tr>
                             </table>
                         </div>
@@ -528,10 +536,52 @@ class InvoiceUploadManager {
         `;
     }
 
+    markItemAsExpense(lineItemIndex) {
+        const item = this.processedData.lineItems[lineItemIndex];
+        
+        // Mark the item as an expense
+        item.isExpense = true;
+        item.matchScore = -1; // Special score to indicate expense
+        item.expenseCategory = 'courier_shipping'; // Default to Courier & Shipping
+        
+        // Show success message
+        showToast(`"${item.description}" marked as expense/service`, 'success');
+        
+        // Re-render the line items
+        this.renderLineItemsReview();
+    }
+    
+    unmarkExpense(lineItemIndex) {
+        const item = this.processedData.lineItems[lineItemIndex];
+        
+        // Remove expense marking
+        delete item.isExpense;
+        delete item.expenseCategory;
+        item.matchScore = 0; // Reset to new product status
+        
+        showToast(`"${item.description}" unmarked as expense`, 'info');
+        
+        // Re-render the line items
+        this.renderLineItemsReview();
+    }
+
     renderLineItemCard(item, index) {
         let statusBadge, statusClass, actionButtons;
-
-        if (item.matchScore >= 1.0) {
+        
+        // Check if item is marked as expense
+        if (item.isExpense) {
+            statusBadge = '<span class="badge bg-warning text-dark">Expense/Service</span>';
+            statusClass = 'border-warning';
+            actionButtons = `
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="invoiceUploadManager.unmarkExpense(${index})">
+                    <i class="fas fa-undo me-1"></i>Unmark as Expense
+                </button>
+                <div class="mt-2 small text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    This will be recorded as an expense, not added to inventory.
+                </div>
+            `;
+        } else if (item.matchScore >= 1.0) {
             statusBadge = '<span class="badge bg-success">Exact Match</span>';
             statusClass = 'border-success';
             actionButtons = `
@@ -549,6 +599,9 @@ class InvoiceUploadManager {
                 <button type="button" class="btn btn-outline-success btn-sm create-item-btn" data-index="${index}">
                     <i class="fas fa-plus me-1"></i>Create New
                 </button>
+                <button type="button" class="btn btn-outline-warning btn-sm mark-expense-btn" data-index="${index}">
+                    <i class="fas fa-receipt me-1"></i>Mark as Expense
+                </button>
             `;
         } else {
             statusBadge = '<span class="badge bg-info">New Product</span>';
@@ -559,6 +612,9 @@ class InvoiceUploadManager {
                 </button>
                 <button type="button" class="btn btn-success btn-sm create-item-btn" data-index="${index}">
                     <i class="fas fa-plus me-1"></i>Create New
+                </button>
+                <button type="button" class="btn btn-outline-warning btn-sm mark-expense-btn" data-index="${index}">
+                    <i class="fas fa-receipt me-1"></i>Mark as Expense
                 </button>
             `;
         }
@@ -582,8 +638,8 @@ class InvoiceUploadManager {
                             <div class="row mt-1 small">
                                 <div class="col-6">
                                     <div>Qty: <strong>${item.quantity}</strong></div>
-                                    <div>Unit Price (excl): <strong>${formatCurrency(item.unitPriceExclTax || item.unitPrice)}</strong></div>
-                                    <div>Unit Price (incl): <strong>${formatCurrency(item.unitPrice)}</strong></div>
+                                    <div>Unit Price (excl): <strong>${formatCurrency(item.unitPriceExclTax || (item.unitPrice / 1.15))}</strong></div>
+                                    <div>Unit Price (incl): <strong>${formatCurrency(item.unitPriceInclTax || item.unitPrice)}</strong></div>
                                 </div>
                                 <div class="col-6">
                                     <div>Subtotal: <strong>${formatCurrency(item.subtotal || (item.unitPriceExclTax || item.unitPrice) * item.quantity)}</strong></div>

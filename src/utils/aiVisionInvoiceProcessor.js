@@ -258,7 +258,7 @@ class AIVisionInvoiceProcessor {
                         temperature: 0.1, // Low temperature for consistent extraction
                         topK: 1,
                         topP: 0.1,
-                        maxOutputTokens: 4096, // Increased from 2048 to handle larger responses
+                        maxOutputTokens: 8192, // Further increased to handle larger invoices with many line items
                     },
                     safetySettings: [
                         {
@@ -500,7 +500,7 @@ Be very precise and only extract what you actually see in the document.`;
                         temperature: 0.1,
                         topK: 1,
                         topP: 0.1,
-                        maxOutputTokens: 2048, // Increased for simple prompt
+                        maxOutputTokens: 4096, // Further increased for simple prompt
                     },
                     safetySettings: [
                         {
@@ -576,18 +576,26 @@ Be very precise and only extract what you actually see in the document.`;
      * @returns {string} Simple extraction prompt
      */
     buildSimplePrompt() {
-        return `Extract invoice data. Find date in DD/MM/YY format. Line prices are excluding tax. Return JSON:
+        return `Extract invoice data from this document. Look carefully for:
+
+1. SUPPLIER: Look at the top of the invoice for company name (like "Medis", "Temu", "Transpharm")
+2. INVOICE NUMBER: Find invoice/reference number
+3. DATE: Look for date in DD/MM/YY format  
+4. ITEMS: Find product table with descriptions, quantities, and prices
+5. TOTALS: Look for total amounts
+
+Line item prices are EXCLUDING tax. Return JSON:
 {
-  "supplier": "company_name",
-  "invoiceNumber": "number", 
-  "invoiceDate": "DD/MM/YY_date_from_document",
-  "totalAmount": final_total,
-  "totalExcludingTax": subtotal_before_tax,
-  "taxAmount": tax_amount,
+  "supplier": "exact_company_name_from_document",
+  "invoiceNumber": "exact_number", 
+  "invoiceDate": "DD/MM/YY_date",
+  "totalAmount": final_total_number,
+  "totalExcludingTax": subtotal_number,
+  "taxAmount": tax_number,
   "lineItems": [{
-    "code": "product_code",
-    "description": "item_name",
-    "quantity": number,
+    "code": "product_code_if_any",
+    "description": "product_name",
+    "quantity": quantity_number,
     "unitPrice": price_excluding_tax,
     "totalPrice": line_total_excluding_tax
   }]
@@ -774,7 +782,18 @@ Focus on accuracy over speed. Take your time to read each table row carefully.`;
         
         // Extract basic fields using regex
         const supplierMatch = brokenJson.match(/"supplier":\s*"([^"]+)"/);
-        if (supplierMatch) partial.supplier = supplierMatch[1];
+        if (supplierMatch) {
+            partial.supplier = supplierMatch[1];
+        } else {
+            // Try to identify supplier from common patterns in the broken JSON
+            if (brokenJson.toLowerCase().includes('medis')) {
+                partial.supplier = 'medis';
+            } else if (brokenJson.toLowerCase().includes('temu')) {
+                partial.supplier = 'temu';
+            } else if (brokenJson.toLowerCase().includes('transpharm')) {
+                partial.supplier = 'transpharm';
+            }
+        }
         
         const invoiceNumberMatch = brokenJson.match(/"invoiceNumber":\s*"([^"]+)"/);
         if (invoiceNumberMatch) partial.invoiceNumber = invoiceNumberMatch[1];

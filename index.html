@@ -492,18 +492,118 @@
                                     </select>
                                 </div>
                                 
-                                <!-- Cost Price (all types) -->
+                                <!-- Cost Price -->
                                 <div class="mb-3" id="costPriceGroup">
-                                    <label for="itemCostPrice" class="form-label">Cost Price *</label>
+                                    <label for="itemCostPrice" class="form-label">Cost Price (incl. VAT) *</label>
                                     <input type="number" class="form-control" id="itemCostPrice" step="0.01" required>
-                                    <div class="form-text">How much you paid for this item</div>
+                                    <div class="form-text">Total amount you paid for this item including VAT</div>
+                                </div>
+                                
+                                <!-- Packaging Options -->
+                                <div class="card mb-3" id="editPackagingGroup">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-boxes me-2"></i>Packaging Options</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="editItemPackType" class="form-label">Pack Type</label>
+                                                    <select class="form-select" id="editItemPackType">
+                                                        <option value="single">Single Unit</option>
+                                                        <option value="pack">Multi-Pack</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3" id="editPackSizeGroup" style="display: none;">
+                                                    <label for="editItemPackSize" class="form-label">Units per Pack</label>
+                                                    <input type="number" class="form-control" id="editItemPackSize" min="2" value="6">
+                                                    <div class="form-text">How many individual units in each pack</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3" id="editSellIndividuallyGroup" style="display: none;">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="editItemSellIndividually" checked>
+                                                        <label class="form-check-label" for="editItemSellIndividually">
+                                                            Allow individual sales
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-text">Check if you can sell items individually from the pack</div>
+                                                </div>
+                                                <div class="mb-0" id="editPackPriceGroup" style="display: none;">
+                                                    <label for="editItemPackPrice" class="form-label">Pack Price</label>
+                                                    <input type="number" class="form-control" id="editItemPackPrice" step="0.01">
+                                                    <div class="form-text">Price for the entire pack</div>
+                                                </div>
+                                                <div class="mb-0" id="editIndividualPriceGroup" style="display: none;">
+                                                    <label for="editItemIndividualPrice" class="form-label">Individual Price</label>
+                                                    <input type="number" class="form-control" id="editItemIndividualPrice" step="0.01">
+                                                    <div class="form-text">Price per individual unit</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-info mt-2" id="editPackagingHelp" style="display: none;">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <span id="editPackagingHelpText"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Packaging Options -->
+                                <div class="card mb-3" id="packagingGroup">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-boxes me-2"></i>Packaging Options</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="itemPackType" class="form-label">Pack Type</label>
+                                                    <select class="form-select" id="itemPackType">
+                                                        <option value="single">Single Unit</option>
+                                                        <option value="pack">Multi-Pack</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3" id="packSizeGroup" style="display: none;">
+                                                    <label for="itemPackSize" class="form-label">Units per Pack</label>
+                                                    <input type="number" class="form-control" id="itemPackSize" min="2" value="6">
+                                                    <div class="form-text">How many individual units in each pack</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3" id="sellIndividuallyGroup" style="display: none;">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="itemSellIndividually" checked>
+                                                        <label class="form-check-label" for="itemSellIndividually">
+                                                            Allow individual sales
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-text">Check if you can sell items individually from the pack</div>
+                                                </div>
+                                        <div class="mb-0" id="packPriceGroup" style="display: none;">
+                                            <label for="itemPackPrice" class="form-label">Pack Price (incl. VAT)</label>
+                                            <input type="number" class="form-control" id="itemPackPrice" step="0.01">
+                                            <div class="form-text">Price for the entire pack including VAT</div>
+                                        </div>
+                                        <div class="mb-0" id="individualPriceGroup" style="display: none;">
+                                            <label for="itemIndividualPrice" class="form-label">Individual Price (incl. VAT)</label>
+                                            <input type="number" class="form-control" id="itemIndividualPrice" step="0.01">
+                                            <div class="form-text">Price per individual unit including VAT</div>
+                                        </div>
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-info mt-2" id="packagingHelp" style="display: none;">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <span id="packagingHelpText"></span>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <!-- Selling Price (reselling items only) -->
                                 <div class="mb-3" id="SellingPriceGroup" style="display: none;">
-                                    <label for="itemSellingPrice" class="form-label">Selling Price *</label>
+                                    <label for="itemSellingPrice" class="form-label">Selling Price (incl. VAT) *</label>
                                     <input type="number" class="form-control" id="itemSellingPrice" step="0.01">
-                                    <div class="form-text">Price you sell this item for</div>
+                                    <div class="form-text">Price you sell this item for including VAT</div>
                                 </div>
                                 
                                 <!-- Purchase Date (office equipment only) -->
@@ -613,16 +713,16 @@
                                 
                                 <!-- Cost Price (all types) -->
                                 <div class="mb-3" id="editCostPriceGroup">
-                                    <label for="editItemCostPrice" class="form-label">Cost Price *</label>
+                                    <label for="editItemCostPrice" class="form-label">Cost Price (incl. VAT) *</label>
                                     <input type="number" class="form-control" id="editItemCostPrice" step="0.01" required>
-                                    <div class="form-text">How much you paid for this item</div>
+                                    <div class="form-text">Total amount you paid for this item including VAT</div>
                                 </div>
                                 
                                 <!-- Selling Price (reselling items only) -->
                                 <div class="mb-3" id="editSellingPriceGroup" style="display: none;">
-                                    <label for="editItemSellingPrice" class="form-label">Selling Price *</label>
+                                    <label for="editItemSellingPrice" class="form-label">Selling Price (incl. VAT) *</label>
                                     <input type="number" class="form-control" id="editItemSellingPrice" step="0.01">
-                                    <div class="form-text">Price you sell this item for</div>
+                                    <div class="form-text">Price you sell this item for including VAT</div>
                                 </div>
                                 
                                 <!-- Purchase Date (office equipment only) -->
@@ -680,6 +780,56 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- Packaging Options -->
+                        <div class="card mb-3" id="editPackagingGroup">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-boxes me-2"></i>Packaging Options</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="editItemPackType" class="form-label">Pack Type</label>
+                                            <select class="form-select" id="editItemPackType">
+                                                <option value="single">Single Unit</option>
+                                                <option value="pack">Multi-Pack</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3" id="editPackSizeGroup" style="display: none;">
+                                            <label for="editItemPackSize" class="form-label">Units per Pack</label>
+                                            <input type="number" class="form-control" id="editItemPackSize" min="2" value="6">
+                                            <div class="form-text">How many individual units in each pack</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3" id="editSellIndividuallyGroup" style="display: none;">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="editItemSellIndividually" checked>
+                                                <label class="form-check-label" for="editItemSellIndividually">
+                                                    Allow individual sales
+                                                </label>
+                                            </div>
+                                            <div class="form-text">Check if you can sell items individually from the pack</div>
+                                        </div>
+                                        <div class="mb-0" id="editPackPriceGroup" style="display: none;">
+                                            <label for="editItemPackPrice" class="form-label">Pack Price (incl. VAT)</label>
+                                            <input type="number" class="form-control" id="editItemPackPrice" step="0.01">
+                                            <div class="form-text">Price for the entire pack including VAT</div>
+                                        </div>
+                                        <div class="mb-0" id="editIndividualPriceGroup" style="display: none;">
+                                            <label for="editItemIndividualPrice" class="form-label">Individual Price (incl. VAT)</label>
+                                            <input type="number" class="form-control" id="editItemIndividualPrice" step="0.01">
+                                            <div class="form-text">Price per individual unit including VAT</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info mt-2" id="editPackagingHelp" style="display: none;">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <span id="editPackagingHelpText"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="row">
                             <div class="col-12">
                                 <div class="mb-3">

@@ -158,6 +158,23 @@ class ItemsManager {
         safeAddEventListener('editItemType', 'change', (e) => {
             this.handleItemTypeChange(e.target.value, true);
         });
+        
+        // Packaging field handlers
+        safeAddEventListener('itemPackType', 'change', (e) => {
+            this.handlePackTypeChange(e.target.value, false);
+        });
+        
+        safeAddEventListener('editItemPackType', 'change', (e) => {
+            this.handlePackTypeChange(e.target.value, true);
+        });
+        
+        safeAddEventListener('itemSellIndividually', 'change', (e) => {
+            this.handleSellIndividuallyChange(e.target.checked, false);
+        });
+        
+        safeAddEventListener('editItemSellIndividually', 'change', (e) => {
+            this.handleSellIndividuallyChange(e.target.checked, true);
+        });
 
         // Type-specific add item buttons
         safeAddEventListener('addResellingItemBtn', 'click', async () => {
@@ -371,8 +388,8 @@ class ItemsManager {
                 const margin = sellingPrice > 0 ? ((profit / sellingPrice) * 100).toFixed(1) : 0;
                 return `
                     <div>
-                        <small class="text-muted">Cost:</small> ${formatCurrency(costPrice)}<br>
-                        <small class="text-muted">Sell:</small> ${formatCurrency(sellingPrice)}<br>
+                        <small class="text-muted">Cost (incl VAT):</small> ${formatCurrency(costPrice)}<br>
+                        <small class="text-muted">Sell (incl VAT):</small> ${formatCurrency(sellingPrice)}<br>
                         <small class="text-success">Margin: ${margin}%</small>
                     </div>
                 `;
@@ -380,7 +397,7 @@ class ItemsManager {
             case 'office_equipment':
                 return `
                     <div>
-                        <small class="text-muted">Cost:</small> ${formatCurrency(costPrice)}
+                        <small class="text-muted">Cost (incl VAT):</small> ${formatCurrency(costPrice)}
                     </div>
                 `;
             default:
@@ -429,19 +446,19 @@ class ItemsManager {
                 const margin = sellingPrice > 0 ? ((profit / sellingPrice) * 100).toFixed(1) : 0;
                 const markup = costPrice > 0 ? ((profit / costPrice) * 100).toFixed(1) : 0;
                 return `
-                    <tr><th>Cost Price:</th><td>${formatCurrency(costPrice)}</td></tr>
-                    <tr><th>Selling Price:</th><td>${formatCurrency(sellingPrice)}</td></tr>
+                    <tr><th>Cost Price (incl VAT):</th><td>${formatCurrency(costPrice)}</td></tr>
+                    <tr><th>Selling Price (incl VAT):</th><td>${formatCurrency(sellingPrice)}</td></tr>
                     <tr><th>Profit per Unit:</th><td class="${profit >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(profit)}</td></tr>
                     <tr><th>Profit Margin:</th><td class="text-info">${margin}%</td></tr>
                     <tr><th>Markup:</th><td class="text-info">${markup}%</td></tr>
                 `;
             case 'consumable':
-                return `<tr><th>Cost Price:</th><td>${formatCurrency(costPrice)}</td></tr>`;
+                return `<tr><th>Cost Price (incl VAT):</th><td>${formatCurrency(costPrice)}</td></tr>`;
             case 'office_equipment':
                 const purchaseDate = item.purchaseDate ? new Date(item.purchaseDate) : null;
                 const ageInMonths = purchaseDate ? Math.floor((new Date() - purchaseDate) / (1000 * 60 * 60 * 24 * 30.44)) : 0;
                 return `
-                    <tr><th>Cost Price:</th><td>${formatCurrency(costPrice)}</td></tr>
+                    <tr><th>Cost Price (incl VAT):</th><td>${formatCurrency(costPrice)}</td></tr>
                     ${ageInMonths > 0 ? `<tr><th>Age:</th><td>${ageInMonths} months</td></tr>` : ''}
                 `;
             default:
@@ -503,7 +520,13 @@ class ItemsManager {
                 listingName: document.getElementById('itemListingName').value.trim() || null,
                 description: document.getElementById('itemDescription').value.trim() || null,
                 alternativeNames: parseAlternativeNames(document.getElementById('itemAltNames').value),
-                imageData: this.currentImageData ? this.currentImageData.data : null
+                imageData: this.currentImageData ? this.currentImageData.data : null,
+                // Add packaging fields
+                packType: document.getElementById('itemPackType').value || 'single',
+                packSize: document.getElementById('itemPackType').value === 'pack' ? (parseInt(document.getElementById('itemPackSize').value) || 6) : null,
+                sellIndividually: document.getElementById('itemPackType').value === 'pack' ? document.getElementById('itemSellIndividually').checked : null,
+                packPrice: document.getElementById('itemPackType').value === 'pack' ? (parseFloat(document.getElementById('itemPackPrice').value) || 0) : null,
+                individualPrice: document.getElementById('itemPackType').value === 'pack' && document.getElementById('itemSellIndividually').checked ? (parseFloat(document.getElementById('itemIndividualPrice').value) || 0) : null
             };
             
             console.log('📝 Debug saveItem - Final itemData object:');
@@ -782,6 +805,16 @@ class ItemsManager {
             lowStockThresholdInput.value = item.lowStockThreshold || 5;
         }
         
+        // Populate packaging fields
+        document.getElementById('editItemPackType').value = item.packType || 'single';
+        document.getElementById('editItemPackSize').value = item.packSize || 6;
+        document.getElementById('editItemSellIndividually').checked = item.sellIndividually || false;
+        document.getElementById('editItemPackPrice').value = item.packPrice || '';
+        document.getElementById('editItemIndividualPrice').value = item.individualPrice || '';
+        
+        // Handle packaging field visibility
+        this.handlePackTypeChange(item.packType || 'single', true);
+        
         // Handle item type-specific field visibility
         this.handleItemTypeChange(item.itemType || 'reselling', true);
         
@@ -903,7 +936,13 @@ class ItemsManager {
                 alternativeNames: altNames ? altNames.split(',').map(name => name.trim()).filter(name => name) : null,
                 description: document.getElementById('editItemDescription').value.trim() || null,
                 // Keep existing image if no new image was uploaded
-                imageData: this.editImageData !== null ? this.editImageData : currentItem.imageData
+                imageData: this.editImageData !== null ? this.editImageData : currentItem.imageData,
+                // Add packaging fields
+                packType: document.getElementById('editItemPackType').value || 'single',
+                packSize: document.getElementById('editItemPackType').value === 'pack' ? (parseInt(document.getElementById('editItemPackSize').value) || 6) : null,
+                sellIndividually: document.getElementById('editItemPackType').value === 'pack' ? document.getElementById('editItemSellIndividually').checked : null,
+                packPrice: document.getElementById('editItemPackType').value === 'pack' ? (parseFloat(document.getElementById('editItemPackPrice').value) || 0) : null,
+                individualPrice: document.getElementById('editItemPackType').value === 'pack' && document.getElementById('editItemSellIndividually').checked ? (parseFloat(document.getElementById('editItemIndividualPrice').value) || 0) : null
             };
             
             // Add type-specific fields
@@ -1027,6 +1066,60 @@ class ItemsManager {
                 break;
             default:
                 console.log(`⚠️ Unknown item type: ${itemType}`);
+        }
+    }
+    
+    handlePackTypeChange(packType, isEdit = false) {
+        const prefix = isEdit ? 'edit' : '';
+        const packSizeGroup = document.getElementById(`${prefix}PackSizeGroup`);
+        const sellIndividuallyGroup = document.getElementById(`${prefix}SellIndividuallyGroup`);
+        const packPriceGroup = document.getElementById(`${prefix}PackPriceGroup`);
+        const individualPriceGroup = document.getElementById(`${prefix}IndividualPriceGroup`);
+        const packagingHelp = document.getElementById(`${prefix}PackagingHelp`);
+        const packagingHelpText = document.getElementById(`${prefix}PackagingHelpText`);
+        
+        if (packType === 'pack') {
+            // Show pack-related fields
+            if (packSizeGroup) packSizeGroup.style.display = 'block';
+            if (sellIndividuallyGroup) sellIndividuallyGroup.style.display = 'block';
+            if (packPriceGroup) packPriceGroup.style.display = 'block';
+            
+            // Check if sell individually is enabled and show individual price if so
+            const sellIndividuallyCheckbox = document.getElementById(isEdit ? 'editItemSellIndividually' : 'itemSellIndividually');
+            if (sellIndividuallyCheckbox && sellIndividuallyCheckbox.checked && individualPriceGroup) {
+                individualPriceGroup.style.display = 'block';
+            }
+            
+            // Show help text
+            if (packagingHelp && packagingHelpText) {
+                packagingHelp.style.display = 'block';
+                packagingHelpText.textContent = 'Configure how this multi-pack item will be sold. You can set both pack and individual unit prices.';
+            }
+        } else {
+            // Hide all pack-related fields
+            if (packSizeGroup) packSizeGroup.style.display = 'none';
+            if (sellIndividuallyGroup) sellIndividuallyGroup.style.display = 'none';
+            if (packPriceGroup) packPriceGroup.style.display = 'none';
+            if (individualPriceGroup) individualPriceGroup.style.display = 'none';
+            if (packagingHelp) packagingHelp.style.display = 'none';
+        }
+    }
+    
+    handleSellIndividuallyChange(sellIndividually, isEdit = false) {
+        const prefix = isEdit ? 'edit' : '';
+        const individualPriceGroup = document.getElementById(`${prefix}IndividualPriceGroup`);
+        const packagingHelpText = document.getElementById(`${prefix}PackagingHelpText`);
+        
+        if (sellIndividually && individualPriceGroup) {
+            individualPriceGroup.style.display = 'block';
+            if (packagingHelpText) {
+                packagingHelpText.textContent = 'You can sell both individual units and complete packs. Set prices for both options.';
+            }
+        } else if (individualPriceGroup) {
+            individualPriceGroup.style.display = 'none';
+            if (packagingHelpText) {
+                packagingHelpText.textContent = 'This pack can only be sold as a complete unit. Individual unit sales are disabled.';
+            }
         }
     }
 
@@ -1511,6 +1604,16 @@ class ItemsManager {
                 console.error('❌ itemType select element not found!');
             }
         }
+        
+        // Initialize packaging fields to default state
+        document.getElementById('itemPackType').value = 'single';
+        document.getElementById('itemPackSize').value = 6;
+        document.getElementById('itemSellIndividually').checked = true;
+        document.getElementById('itemPackPrice').value = '';
+        document.getElementById('itemIndividualPrice').value = '';
+        
+        // Initialize packaging field visibility
+        this.handlePackTypeChange('single', false);
         
         // Add cleanup event listeners
         const cleanupModal = () => {
