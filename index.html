@@ -79,6 +79,13 @@
                                 <i class="fas fa-receipt"></i> Purchase History
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="generateSKUBtn">
+                                <i class="fas fa-barcode"></i> Generate SKU for Items
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" id="generateBarcodeBtn">
+                                <i class="fas fa-qrcode"></i> Generate Barcode for Items
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" id="aiSettingsBtn">
                                 <i class="fas fa-robot"></i> AI Settings
                             </a></li>
@@ -2493,6 +2500,7 @@
     <!-- Application Scripts -->
     <script src="src/database/database.js"></script>
     <script src="src/utils/helpers.js"></script>
+    <script src="src/utils/idGenerator.js"></script>
     <script src="src/utils/supplierProfiles.js"></script>
     <script src="src/utils/supplierLearningManager.js"></script>
     <script src="src/utils/aiInvoiceProcessor.js"></script>
@@ -2510,6 +2518,7 @@
     <script src="src/ui/invoiceTraining.js"></script>
     <script src="src/ui/invoiceUpload.js"></script>
     <script src="src/ui/aiSettings.js"></script>
+    <script src="src/ui/idGenerationSettings.js"></script>
     <script src="src/main.js"></script>
 </body>
 </html>
