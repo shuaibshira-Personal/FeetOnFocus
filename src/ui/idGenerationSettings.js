@@ -123,9 +123,31 @@ class IDGenerationSettings {
 
             showToast(`Successfully generated ${count} SKU(s)!`, 'success');
             
-            // Refresh items display
+            // Refresh items display based on current view
             if (window.itemsManager) {
-                await itemsManager.loadItems();
+                // Check current active tab and refresh appropriate view
+                const activeNavTab = document.querySelector('.nav-link.active');
+                const activeDropdownTab = document.querySelector('.dropdown-item.active');
+                const activeTab = activeDropdownTab || activeNavTab;
+                
+                if (activeTab) {
+                    const activeTabId = activeTab.id;
+                    console.log(`🔄 Refreshing view for active tab: ${activeTabId}`);
+                    
+                    // Refresh the appropriate type-specific view based on current tab
+                    if (activeTabId === 'resellingTab') {
+                        await itemsManager.loadItemsByType('reselling');
+                    } else if (activeTabId === 'consumablesTab') {
+                        await itemsManager.loadItemsByType('consumable');
+                    } else if (activeTabId === 'officeEquipmentTab') {
+                        await itemsManager.loadItemsByType('office_equipment');
+                    } else if (activeTabId === 'allItemsTab') {
+                        await itemsManager.loadItems();
+                    }
+                } else {
+                    // Fallback: just load all items
+                    await itemsManager.loadItems();
+                }
             }
         } catch (error) {
             console.error('Error generating SKU:', error);
@@ -245,9 +267,31 @@ class IDGenerationSettings {
 
             showToast(`Successfully generated ${count} barcode(s)!`, 'success');
             
-            // Refresh items display
+            // Refresh items display based on current view
             if (window.itemsManager) {
-                await itemsManager.loadItems();
+                // Check current active tab and refresh appropriate view
+                const activeNavTab = document.querySelector('.nav-link.active');
+                const activeDropdownTab = document.querySelector('.dropdown-item.active');
+                const activeTab = activeDropdownTab || activeNavTab;
+                
+                if (activeTab) {
+                    const activeTabId = activeTab.id;
+                    console.log(`🔄 Refreshing view for active tab: ${activeTabId}`);
+                    
+                    // Refresh the appropriate type-specific view based on current tab
+                    if (activeTabId === 'resellingTab') {
+                        await itemsManager.loadItemsByType('reselling');
+                    } else if (activeTabId === 'consumablesTab') {
+                        await itemsManager.loadItemsByType('consumable');
+                    } else if (activeTabId === 'officeEquipmentTab') {
+                        await itemsManager.loadItemsByType('office_equipment');
+                    } else if (activeTabId === 'allItemsTab') {
+                        await itemsManager.loadItems();
+                    }
+                } else {
+                    // Fallback: just load all items
+                    await itemsManager.loadItems();
+                }
             }
         } catch (error) {
             console.error('Error generating barcode:', error);
