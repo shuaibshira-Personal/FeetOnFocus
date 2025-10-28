@@ -38,38 +38,20 @@ class SimplyBluExport {
                                 </ul>
                             </div>
 
-                            <div class="form-group">
-                                <label class="form-label"><strong>Select fields to include:</strong></label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="includeSKU" checked>
-                                    <label class="form-check-label" for="includeSKU">
-                                        SKU (Product ID)
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="includeBarcode" checked>
-                                    <label class="form-check-label" for="includeBarcode">
-                                        Barcode (EAN)
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="includePrice" checked>
-                                    <label class="form-check-label" for="includePrice">
-                                        Selling Price
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="includeQuantity" checked>
-                                    <label class="form-check-label" for="includeQuantity">
-                                        Quantity
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="includeDescription" checked>
-                                    <label class="form-check-label" for="includeDescription">
-                                        Description
-                                    </label>
-                                </div>
+                            <div class="alert alert-info">
+                                <strong>Export Fields:</strong>
+                                <ul class="mb-0">
+                                    <li>Category - From item category</li>
+                                    <li>Description - From item description</li>
+                                    <li>SalesChannel - Set to "instore"</li>
+                                    <li>SellingPrice - From item selling price</li>
+                                    <li>CostPrice - From item cost price</li>
+                                    <li>IsStockTrackable - Set to "TRUE"</li>
+                                    <li>SKU - Product ID/SKU</li>
+                                    <li>Barcode - Product barcode</li>
+                                    <li>StockCount - Current quantity</li>
+                                    <li>LowStock - Low stock threshold</li>
+                                </ul>
                             </div>
 
                             <div class="alert alert-warning mt-3">
@@ -107,13 +89,6 @@ class SimplyBluExport {
         try {
             showLoading('body');
 
-            // Get selected options
-            const includeSKU = document.getElementById('includeSKU').checked;
-            const includeBarcode = document.getElementById('includeBarcode').checked;
-            const includePrice = document.getElementById('includePrice').checked;
-            const includeQuantity = document.getElementById('includeQuantity').checked;
-            const includeDescription = document.getElementById('includeDescription').checked;
-
             // Get items
             const items = await inventoryDB.getAllItems();
             const resellingItems = items.filter(i => i.itemType === 'reselling');
@@ -123,52 +98,47 @@ class SimplyBluExport {
                 return;
             }
 
-            // Load the template
-            const templateData = await this.loadTemplate();
-            
-            if (!templateData) {
-                showToast('Could not load template file. Please ensure the template exists.', 'error');
-                return;
-            }
+            // Create new workbook with SimplyBlu headers
+            const headers = ['Category', 'Description', 'SalesChannel', 'SellingPrice', 'CostPrice', 'IsStockTrackable', 'SKU', 'Barcode', 'StockCount', 'LowStock'];
+            const data = [headers];
 
-            // Create workbook from template
-            const workbook = XLSX.read(templateData, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-
-            // Prepare data rows (skip header row)
-            let rowIndex = 2; // Start after header
-            
+            // Add items to data
             for (const item of resellingItems) {
-                const rowData = this.prepareItemRow(item, includeSKU, includeBarcode, includePrice, includeQuantity, includeDescription);
-                
-                // Map to cells
-                if (includeSKU && rowData.sku) {
-                    worksheet['A' + rowIndex] = { t: 's', v: rowData.sku };
-                }
-                if (includeBarcode && rowData.barcode) {
-                    worksheet['B' + rowIndex] = { t: 's', v: rowData.barcode };
-                }
-                if (rowData.name) {
-                    const nameCol = includeSKU && includeBarcode ? 'C' : (includeSKU || includeBarcode ? 'B' : 'A');
-                    worksheet[nameCol + rowIndex] = { t: 's', v: rowData.name };
-                }
-                if (includePrice && rowData.price) {
-                    worksheet['E' + rowIndex] = { t: 'n', v: rowData.price };
-                }
-                if (includeQuantity && rowData.quantity !== undefined) {
-                    worksheet['F' + rowIndex] = { t: 'n', v: rowData.quantity };
-                }
-                if (includeDescription && rowData.description) {
-                    worksheet['G' + rowIndex] = { t: 's', v: rowData.description };
-                }
-
-                rowIndex++;
+                const row = [
+                    item.category || '',                           // Category
+                    item.description || '',                        // Description
+                    'instore',                                     // SalesChannel (always instore)
+                    item.sellingPrice || item.costPrice || 0,      // SellingPrice
+                    item.costPrice || item.price || 0,             // CostPrice
+                    'TRUE',                                        // IsStockTrackable (always TRUE)
+                    item.sku || '',                                // SKU
+                    item.barcode || '',                            // Barcode
+                    item.quantity || 0,                            // StockCount
+                    item.lowStockThreshold || 5                    // LowStock
+                ];
+                data.push(row);
             }
 
-            // Update worksheet range
-            const range = XLSX.utils.decode_range(worksheet['!ref']);
-            range.e.r = rowIndex - 1;
-            worksheet['!ref'] = XLSX.utils.encode_range(range);
+            // Create worksheet
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            
+            // Set column widths for better readability
+            worksheet['!cols'] = [
+                { wch: 20 }, // Category
+                { wch: 30 }, // Description
+                { wch: 15 }, // SalesChannel
+                { wch: 15 }, // SellingPrice
+                { wch: 15 }, // CostPrice
+                { wch: 15 }, // IsStockTrackable
+                { wch: 15 }, // SKU
+                { wch: 20 }, // Barcode
+                { wch: 12 }, // StockCount
+                { wch: 12 }  // LowStock
+            ];
+
+            // Create workbook
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
 
             // Write file
             const fileName = `SimplyBlu_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -186,40 +156,6 @@ class SimplyBluExport {
         }
     }
 
-    /**
-     * Prepare a single item row for export
-     */
-    prepareItemRow(item, includeSKU, includeBarcode, includePrice, includeQuantity, includeDescription) {
-        return {
-            sku: item.sku || '',
-            barcode: item.barcode || '',
-            name: item.name || '',
-            listingName: item.listingName || '',
-            price: item.sellingPrice || item.costPrice || 0,
-            quantity: item.quantity || 0,
-            description: item.description || '',
-            category: item.category || '',
-            supplier: item.supplier || ''
-        };
-    }
-
-    /**
-     * Load template file
-     */
-    async loadTemplate() {
-        try {
-            // Try to load from assets
-            const response = await fetch('assets/templates/simplyblu-template.xlsx');
-            if (!response.ok) {
-                console.warn('Template file not found in assets');
-                return null;
-            }
-            return await response.arrayBuffer();
-        } catch (error) {
-            console.error('Error loading template:', error);
-            return null;
-        }
-    }
 }
 
 // Create global instance
