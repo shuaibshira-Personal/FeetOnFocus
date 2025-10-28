@@ -510,6 +510,7 @@ class ItemsManager {
             const itemData = {
                 name: itemName,
                 sku: document.getElementById('itemSKU').value.trim() || null,
+                barcode: document.getElementById('itemBarcode').value.trim() || null,
                 itemType: itemType,
                 category: document.getElementById('itemCategory').value || null,
                 costPrice: parseFloat(document.getElementById('itemCostPrice').value) || 0,
@@ -640,6 +641,7 @@ class ItemsManager {
                                     <table class="table table-borderless">
                                         <tr><th>Item Type:</th><td>${itemTypeBadge}</td></tr>
                                         <tr><th>SKU:</th><td>${item.sku || 'N/A'}</td></tr>
+                                        <tr><th>Barcode:</th><td>${item.barcode || 'N/A'}</td></tr>
                                         <tr><th>Category:</th><td>${item.category || 'N/A'}</td></tr>
                                         ${pricingDetails}
                                         ${itemType !== 'office_equipment' ? `<tr><th>Quantity:</th><td>${item.quantity || 0}</td></tr>` : ''}
@@ -789,6 +791,7 @@ class ItemsManager {
         document.getElementById('editItemId').value = item.id;
         document.getElementById('editItemName').value = item.name || '';
         document.getElementById('editItemSKU').value = item.sku || '';
+        document.getElementById('editItemBarcode').value = item.barcode || '';
         document.getElementById('editItemType').value = item.itemType || 'reselling'; // Default to reselling for legacy items
         document.getElementById('editItemCostPrice').value = item.costPrice || item.price || '';
         document.getElementById('editItemSellingPrice').value = item.sellingPrice || '';
@@ -925,6 +928,7 @@ class ItemsManager {
             const itemData = {
                 name: itemName,
                 sku: itemSKU || null,
+                barcode: document.getElementById('editItemBarcode').value.trim() || null,
                 itemType: itemType,
                 category: document.getElementById('editItemCategory').value || null,
                 costPrice: parseFloat(document.getElementById('editItemCostPrice').value) || 0,
@@ -1443,6 +1447,7 @@ class ItemsManager {
                     <th>Image</th>
                     <th>Name</th>
                     <th>SKU</th>
+                    <th>Barcode</th>
                     <th>Category</th>
                     <th>Supplier</th>
                     <th>Cost Price</th>
@@ -1457,6 +1462,7 @@ class ItemsManager {
                     <th>Image</th>
                     <th>Name</th>
                     <th>SKU</th>
+                    <th>Barcode</th>
                     <th>Category</th>
                     <th>Supplier</th>
                     <th>Cost Price</th>
@@ -1494,8 +1500,8 @@ class ItemsManager {
     
     getColumnCount(itemType) {
         switch (itemType) {
-            case 'reselling': return 11;
-            case 'consumable': return 9;
+            case 'reselling': return 12;
+            case 'consumable': return 10;
             case 'office_equipment': return 9;
             default: return 10;
         }
@@ -1690,6 +1696,7 @@ class ItemsManager {
                 <small class="text-muted">${listingName}</small>
             </td>
             <td>${item.sku || ''}</td>
+            <td>${item.barcode || ''}</td>
             <td>${item.category || ''}</td>
             <td>
                 <span class="badge" style="background-color: ${supplierColor}; color: white;">

@@ -52,6 +52,7 @@ class InventoryDatabase {
                     // Create indexes for better querying
                     itemsStore.createIndex('name', 'name', { unique: false });
                     itemsStore.createIndex('sku', 'sku', { unique: true });
+                    itemsStore.createIndex('barcode', 'barcode', { unique: false });
                     itemsStore.createIndex('supplier', 'supplier', { unique: false });
                     itemsStore.createIndex('category', 'category', { unique: false });
                     itemsStore.createIndex('listingName', 'listingName', { unique: false });
